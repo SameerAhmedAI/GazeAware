@@ -1,0 +1,202 @@
+# =============================================================================
+# GazeAware — .gitignore
+# =============================================================================
+
+# ── SECRETS & API KEYS (NEVER commit these) ───────────────────────────────────
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.p12
+*.pfx
+secrets/
+credentials/
+api_keys.txt
+
+# ── LOCAL DATABASE (user data stays offline) ──────────────────────────────────
+*.db
+*.sqlite
+*.sqlite3
+gazeaware.db
+data/
+
+# ── SESSION & USER DATA ───────────────────────────────────────────────────────
+sessions/
+exports/
+reports/output/
+assets/models/          # LLaMA model files (multi-GB, never commit)
+*.gguf
+*.bin
+*.ggml
+
+# ── PYTHON ────────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+.Python
+pip-log.txt
+pip-delete-this-directory.txt
+.installed.cfg
+*.egg
+*.egg-info/
+dist/
+build/
+eggs/
+parts/
+var/
+sdist/
+develop-eggs/
+.eggs/
+lib/
+lib64/
+MANIFEST
+
+# ── VIRTUAL ENVIRONMENT ───────────────────────────────────────────────────────
+.venv/
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+.virtualenv/
+
+# ── PYTEST / TESTING ──────────────────────────────────────────────────────────
+.pytest_cache/
+.coverage
+htmlcov/
+*.cover
+coverage.xml
+nosetests.xml
+test-results/
+.tox/
+
+# ── JUPYTER (if used for data analysis) ──────────────────────────────────────
+.ipynb_checkpoints
+*.ipynb
+
+# ── PYINSTALLER BUILD OUTPUT ──────────────────────────────────────────────────
+*.spec
+dist/
+build/
+
+# ── LOGS ──────────────────────────────────────────────────────────────────────
+*.log
+logs/
+*.log.*
+
+# ── OS FILES ──────────────────────────────────────────────────────────────────
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# Linux
+*~
+.directory
+
+# ── IDE & EDITOR FILES ────────────────────────────────────────────────────────
+# VS Code
+.vscode/
+!.vscode/extensions.json
+!.vscode/settings.json.example
+
+# PyCharm / JetBrains
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# Vim / Neovim
+*.swp
+*.swo
+*~
+Session.vim
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Spyder
+.spyderproject.cfg
+.spyproject/
+
+# ── WEBCAM / VIDEO FRAMES (never store raw footage) ───────────────────────────
+*.mp4
+*.avi
+*.mov
+*.mkv
+*.wmv
+*.flv
+*.webm
+frames/
+captures/
+recordings/
+
+# ── TEMPORARY FILES ───────────────────────────────────────────────────────────
+tmp/
+temp/
+*.tmp
+*.temp
+*.bak
+*.backup
+*.orig
+*.swp
+
+# ── CERTIFICATE / AUTH FILES ─────────────────────────────────────────────────
+*.crt
+*.cer
+*.csr
+*.der
+*.p7b
+*.p7r
+*.p8
+id_rsa
+id_rsa.pub
+id_ed25519
+id_ed25519.pub
+known_hosts
+
+# ── COMPILED ASSETS ───────────────────────────────────────────────────────────
+*.pyc
+*.pyo
+*.so
+*.dylib
+*.dll
+
+# ── MYPY / TYPE CHECKING ──────────────────────────────────────────────────────
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pyre/
+.pytype/
+
+# ── PROFILING ────────────────────────────────────────────────────────────────
+*.prof
+*.lprof

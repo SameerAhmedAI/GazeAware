@@ -1,0 +1,60 @@
+# =============================================================================
+# GazeAware — .gitattributes
+# Ensures consistent line endings and correct diffs across platforms.
+# =============================================================================
+
+# Auto-detect text files and normalize line endings to LF on commit
+* text=auto eol=lf
+
+# Python source files
+*.py        text eol=lf diff=python
+*.pyi       text eol=lf diff=python
+
+# Web & config files
+*.json      text eol=lf
+*.md        text eol=lf diff=markdown
+*.txt       text eol=lf
+*.cfg       text eol=lf
+*.ini       text eol=lf
+*.toml      text eol=lf
+*.yaml      text eol=lf
+*.yml       text eol=lf
+*.env       text eol=lf
+*.example   text eol=lf
+*.sh        text eol=lf
+
+# Windows-specific: keep CRLF for .bat/.cmd
+*.bat       text eol=crlf
+*.cmd       text eol=crlf
+*.ps1       text eol=crlf
+
+# Binary files — no diff, no line-ending conversion
+*.db        binary
+*.sqlite    binary
+*.sqlite3   binary
+*.png       binary
+*.jpg       binary
+*.jpeg      binary
+*.gif       binary
+*.ico       binary
+*.webp      binary
+*.mp4       binary
+*.avi       binary
+*.mov       binary
+*.gguf      binary
+*.bin       binary
+*.so        binary
+*.dll       binary
+*.dylib     binary
+*.pyc       binary
+*.pyd       binary
+*.pkl       binary
+*.npy       binary
+*.npz       binary
+*.pdf       binary
+*.zip       binary
+*.tar.gz    binary
+*.whl       binary
+
+# Mark generated/vendored files so GitHub won't count them as code
+requirements.txt    linguist-generated=false
