@@ -1,56 +1,156 @@
 """
-GazeAware — Strain Fusion Engine
-Combines all 9 signal values into a single 0–100 strain score.
+GazeAware — Live Strain Score Engine  (Phase 1)
+════════════════════════════════════════════════
+Combines all 9 signal values into a single 0–100 strain score,
+updated every 500 ms.
 
-Architecture:
-    - Each signal outputs a normalised 0–1 value
-    - Weighted sum → mapped to 0–100 scale
-    - Personal baseline modulates weights during calibration phase
+Score zones:
+    GREEN   0–40   → relaxed / healthy
+    YELLOW 41–70   → mild / moderate strain
+    RED    71–100  → danger zone
 
-See config.py for weight values (must sum to 1.0).
+Usage:
+    engine = StrainFusionEngine()
+    score, zone, label = engine.compute_and_print(signal_dict, baseline)
 """
-from backend.config import FUSION_WEIGHTS, STRAIN_MILD, STRAIN_MODERATE, STRAIN_CRITICAL
+
+import time
+from collections import deque
+from backend.config import FUSION_WEIGHTS
+
+
+# ── Zone boundaries (Phase 1 spec) ───────────────────────────────────────────
+ZONE_GREEN  = (0,  40)
+ZONE_YELLOW = (41, 70)
+ZONE_RED    = (71, 100)
 
 
 class StrainFusionEngine:
     """
-    Weighted fusion of all 9 signal values → Strain Score (0–100).
+    Weighted fusion of 9 signal values → Strain Score (0–100).
 
-    Usage:
-        engine = StrainFusionEngine()
-        score = engine.compute(signal_values_dict)
+    All signal values are expected as 0–1 floats where:
+        0 = perfectly healthy
+        1 = worst / maximum strain
+
+    The score is calculated as deviation from personal baseline when
+    baseline is available, otherwise uses absolute values.
     """
 
-    def compute(self, signal_values: dict[str, float]) -> float:
+    def __init__(self):
+        self._history: deque = deque(maxlen=10)   # last 10 scores (5 s)
+        self._last_compute_time: float = 0.0
+        self.current_score: float = 0.0
+        self.current_zone: str = "GREEN"
+
+    # ─────────────────────────────────────────────────────────────────────────
+    def compute(self, signal_values: dict, baseline: dict | None = None) -> float:
         """
+        Compute weighted strain score.
+
         Args:
             signal_values: dict mapping signal name → 0–1 value
                 Keys: blink_rate, blink_quality, screen_distance, squint,
                       gaze_entropy, blink_irregularity, posture_lean,
                       eye_rubbing, scleral_redness
+            baseline: Optional personal baseline dict from BaselineCalibrator.
+                      When provided, scores are relative deviations.
 
         Returns:
-            Strain score 0–100 (float)
+            Strain score 0–100 (float, rounded to 1 dp)
         """
         weighted_sum = 0.0
-        total_weight = 0.0
+        total_weight  = 0.0
 
         for name, weight in FUSION_WEIGHTS.items():
-            value = signal_values.get(name, 0.0)
-            weighted_sum += value * weight
+            raw_val = float(signal_values.get(name, 0.0))
+            raw_val = max(0.0, min(1.0, raw_val))
+
+            # Baseline modulation — amplify deviations above personal norm
+            if baseline:
+                baseline_val = baseline.get(name, 0.0)
+                # Scale: how much above baseline? cap at 3× amplification
+                if baseline_val > 0:
+                    amplification = min(3.0, raw_val / (baseline_val + 1e-6))
+                    raw_val = min(1.0, raw_val * amplification)
+
+            weighted_sum += raw_val * weight
             total_weight += weight
 
         if total_weight == 0:
             return 0.0
 
-        return round((weighted_sum / total_weight) * 100, 1)
+        score = round((weighted_sum / total_weight) * 100, 1)
+        self.current_score = score
+        self.current_zone  = self.classify(score)
+        self._history.append(score)
+        self._last_compute_time = time.time()
+        return score
 
+    # ─────────────────────────────────────────────────────────────────────────
     def classify(self, score: float) -> str:
-        """Return severity label for a given strain score."""
-        if score >= STRAIN_CRITICAL:
-            return "critical"
-        elif score >= STRAIN_MODERATE:
-            return "moderate"
-        elif score >= STRAIN_MILD:
-            return "mild"
-        return "normal"
+        """Return zone name: GREEN / YELLOW / RED."""
+        if score >= 71:
+            return "RED"
+        elif score >= 41:
+            return "YELLOW"
+        return "GREEN"
+
+    # ─────────────────────────────────────────────────────────────────────────
+    def zone_label(self, zone: str) -> str:
+        labels = {
+            "GREEN":  "HEALTHY",
+            "YELLOW": "MILD STRAIN",
+            "RED":    "DANGER ZONE",
+        }
+        return labels.get(zone, zone)
+
+    # ─────────────────────────────────────────────────────────────────────────
+    def print_live(self, score: float, zone: str, extra: str = "") -> None:
+        """
+        Print strain score to terminal in a clear, colour-coded format.
+        Example: Strain Score: 87/100 — DANGER ZONE
+        """
+        zone_emoji = {"GREEN": "🟢", "YELLOW": "🟡", "RED": "🔴"}.get(zone, "⚪")
+        label = self.zone_label(zone)
+        bar = self._score_bar(score)
+        msg = f"  {zone_emoji}  Strain Score: {score:5.1f}/100  [{bar}]  — {label}"
+        if extra:
+            msg += f"  | {extra}"
+        print(msg)
+
+    # ─────────────────────────────────────────────────────────────────────────
+    def _score_bar(self, score: float, width: int = 20) -> str:
+        """ASCII progress bar representing 0–100 strain score."""
+        filled = int((score / 100.0) * width)
+        bar = "█" * filled + "░" * (width - filled)
+        return bar
+
+    # ─────────────────────────────────────────────────────────────────────────
+    def compute_and_print(
+        self,
+        signal_values: dict,
+        baseline: dict | None = None,
+        extra: str = "",
+    ) -> tuple[float, str, str]:
+        """
+        Compute score, classify, print to terminal, return (score, zone, label).
+        """
+        score = self.compute(signal_values, baseline)
+        zone  = self.classify(score)
+        label = self.zone_label(zone)
+        self.print_live(score, zone, extra)
+        return score, zone, label
+
+    # ─────────────────────────────────────────────────────────────────────────
+    def get_trend(self) -> str:
+        """Return trend arrow based on recent history: ↑ ↓ →"""
+        if len(self._history) < 4:
+            return "→"
+        recent = list(self._history)
+        delta = recent[-1] - recent[-4]
+        if delta > 3:
+            return "↑"
+        elif delta < -3:
+            return "↓"
+        return "→"

@@ -2,7 +2,7 @@
 # GazeAware — .gitignore
 # =============================================================================
 
-# ── SECRETS & API KEYS (NEVER commit these) ───────────────────────────────────
+# ── SECRETS & API KEYS (NEVER commit these) ────────────────────────────────────
 .env
 .env.*
 !.env.example
@@ -13,24 +13,26 @@
 secrets/
 credentials/
 api_keys.txt
+config.local.py
+local_settings.py
 
-# ── LOCAL DATABASE (user data stays offline) ──────────────────────────────────
+# ── LOCAL DATABASE (user data stays offline) ───────────────────────────────────
 *.db
 *.sqlite
 *.sqlite3
 gazeaware.db
 data/
 
-# ── SESSION & USER DATA ───────────────────────────────────────────────────────
+# ── SESSION & USER DATA ────────────────────────────────────────────────────────
 sessions/
 exports/
 reports/output/
-assets/models/          # LLaMA model files (multi-GB, never commit)
+assets/models/
 *.gguf
 *.bin
 *.ggml
 
-# ── PYTHON ────────────────────────────────────────────────────────────────────
+# ── PYTHON ─────────────────────────────────────────────────────────────────────
 __pycache__/
 *.py[cod]
 *$py.class
@@ -54,7 +56,7 @@ lib/
 lib64/
 MANIFEST
 
-# ── VIRTUAL ENVIRONMENT ───────────────────────────────────────────────────────
+# ── VIRTUAL ENVIRONMENT ────────────────────────────────────────────────────────
 .venv/
 venv/
 env/
@@ -63,7 +65,7 @@ env.bak/
 venv.bak/
 .virtualenv/
 
-# ── PYTEST / TESTING ──────────────────────────────────────────────────────────
+# ── PYTEST / TESTING ───────────────────────────────────────────────────────────
 .pytest_cache/
 .coverage
 htmlcov/
@@ -73,21 +75,21 @@ nosetests.xml
 test-results/
 .tox/
 
-# ── JUPYTER (if used for data analysis) ──────────────────────────────────────
+# ── JUPYTER ────────────────────────────────────────────────────────────────────
 .ipynb_checkpoints
 *.ipynb
 
-# ── PYINSTALLER BUILD OUTPUT ──────────────────────────────────────────────────
+# ── PYINSTALLER BUILD OUTPUT ───────────────────────────────────────────────────
 *.spec
 dist/
 build/
 
-# ── LOGS ──────────────────────────────────────────────────────────────────────
+# ── LOGS ───────────────────────────────────────────────────────────────────────
 *.log
 logs/
 *.log.*
 
-# ── OS FILES ──────────────────────────────────────────────────────────────────
+# ── OS FILES ───────────────────────────────────────────────────────────────────
 # Windows
 Thumbs.db
 Thumbs.db:encryptable
@@ -114,7 +116,7 @@ $RECYCLE.BIN/
 *~
 .directory
 
-# ── IDE & EDITOR FILES ────────────────────────────────────────────────────────
+# ── IDE & EDITOR FILES ─────────────────────────────────────────────────────────
 # VS Code
 .vscode/
 !.vscode/extensions.json
@@ -130,11 +132,9 @@ out/
 # Vim / Neovim
 *.swp
 *.swo
-*~
 Session.vim
 
 # Emacs
-*~
 \#*\#
 /.emacs.desktop
 /.emacs.desktop.lock
@@ -147,7 +147,7 @@ Session.vim
 .spyderproject.cfg
 .spyproject/
 
-# ── WEBCAM / VIDEO FRAMES (never store raw footage) ───────────────────────────
+# ── WEBCAM / VIDEO FRAMES (never store raw footage) ────────────────────────────
 *.mp4
 *.avi
 *.mov
@@ -159,7 +159,7 @@ frames/
 captures/
 recordings/
 
-# ── TEMPORARY FILES ───────────────────────────────────────────────────────────
+# ── TEMPORARY FILES ────────────────────────────────────────────────────────────
 tmp/
 temp/
 *.tmp
@@ -167,9 +167,8 @@ temp/
 *.bak
 *.backup
 *.orig
-*.swp
 
-# ── CERTIFICATE / AUTH FILES ─────────────────────────────────────────────────
+# ── CERTIFICATE / AUTH FILES ───────────────────────────────────────────────────
 *.crt
 *.cer
 *.csr
@@ -183,20 +182,24 @@ id_ed25519
 id_ed25519.pub
 known_hosts
 
-# ── COMPILED ASSETS ───────────────────────────────────────────────────────────
+# ── COMPILED ASSETS ────────────────────────────────────────────────────────────
 *.pyc
 *.pyo
 *.so
 *.dylib
 *.dll
 
-# ── MYPY / TYPE CHECKING ──────────────────────────────────────────────────────
+# ── MYPY / TYPE CHECKING ───────────────────────────────────────────────────────
 .mypy_cache/
 .dmypy.json
 dmypy.json
 .pyre/
 .pytype/
 
-# ── PROFILING ────────────────────────────────────────────────────────────────
+# ── PROFILING ──────────────────────────────────────────────────────────────────
 *.prof
 *.lprof
+
+# ── ANTIGRAVITY / AI CONTEXT (local dev tool artifacts) ────────────────────────
+.gemini/
+antigravity/
