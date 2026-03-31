@@ -19,6 +19,8 @@ class BlinkRateSignal:
         self.baseline_bpm = baseline_bpm
         self.window_seconds = window_seconds
         self._blink_timestamps: deque = deque()
+        self._init_time = time.time()
+
 
     def record_blink(self):
         """Call this every time a blink is detected."""
@@ -30,8 +32,10 @@ class BlinkRateSignal:
         # Remove old events outside the window
         while self._blink_timestamps and self._blink_timestamps[0] < cutoff:
             self._blink_timestamps.popleft()
-        elapsed = min(now - (self._blink_timestamps[0] if self._blink_timestamps else now),
-                      self.window_seconds)
+
+        # Elapsed time is bounded by how long the app has been running, up to window_seconds
+        elapsed = min(now - self._init_time, self.window_seconds)
+
         if elapsed < 5:  # Not enough data yet
             return self.baseline_bpm
         return (len(self._blink_timestamps) / elapsed) * 60

@@ -37,7 +37,7 @@ GazeAware uses a webcam to monitor eye strain in real time. It:
 - SQLite schema: 4 tables — `sessions`, `signal_logs`, `prescriptions`, `weekly_reports`
 - `backend/config.py` — all thresholds and weights centralized
 
-### ✅ Phase 1 — Live Strain Engine (Last completed)
+### ✅ Phase 1 — Live Strain Engine (Complete)
 **Files created/modified in Phase 1:**
 
 | File | What changed |
@@ -52,6 +52,19 @@ GazeAware uses a webcam to monitor eye strain in real time. It:
 | `tests/simulate_strain.py` | NEW — webcam-free strain simulator, 4 profiles, interactive menu |
 | `.gitignore` | Added: `.gemini/`, `config.local.py`, cleaned up |
 | `README.md` | Updated to Phase 1 status with testing guide and architecture |
+
+### ✅ Phase 2 — New Camera Signal Modules (Complete)
+**Files created/modified in Phase 2:**
+
+| File | What changed |
+|------|-------------|
+| `backend/config.py` | Added 3 new config sections: BLINK_FULL_THRESHOLD, BLINK_PARTIAL_THRESHOLD, BLINK_QUALITY_WINDOW_SECONDS, BLINK_QUALITY_WARNING_RATIO, all LIGHTING_* and DISTANCE_* thresholds. **Weights updated**: blink_rate 0.25→0.30, blink_quality 0.20→0.15 |
+| `backend/signals/blink_quality.py` | **EXTENDED** — min-EAR-trough per blink, rolling 2-min window deque, partial blink ratio output, warning at 60% partial. `compute_ear()` unchanged |
+| `backend/signals/lighting_analyzer.py` | **NEW** — face bounding box crop, grayscale metrics (brightness/asymmetry/contrast), GOOD/BACKLIT/UNDERLIT/UNEVEN classification, 0–100 score, 1.0–1.20 modifier |
+| `backend/signals/distance_trend.py` | **NEW** — 30s sample interval, 10-reading deque buffer, session-start anchor, drift warnings (8cm), critical proximity (45cm for 3min), 1.0–1.15 modifier |
+| `backend/fusion/strain_engine.py` | Added optional `modifiers` dict param to `compute()` and `compute_and_print()` — applies post-fusion multipliers, caps at 100.0 |
+| `backend/database/models.py` | Added 3 new columns to SignalLog: `lighting_score`, `distance_drift_cm`, `blink_partial_ratio` |
+| `backend/main.py` | Imported + instantiated `LightingAnalyzerSignal` and `DistanceTrendTracker`; wired into 500ms loop; passes `active_modifiers` dict to strain engine; extended `log_signals()` and `print_snapshot()` |
 
 ---
 
@@ -158,8 +171,8 @@ weekly_reports   — id, week_start, worst_day, peak_strain_hour,
 
 ```python
 FUSION_WEIGHTS = {
-    "blink_rate":         0.25,
-    "blink_quality":      0.20,
+    "blink_rate":         0.30,   # ↑ from 0.25 (most critical signal)
+    "blink_quality":      0.15,   # ↓ from 0.20 (now purely tracks partial blink ratio)
     "screen_distance":    0.15,
     "squint":             0.15,
     "gaze_entropy":       0.10,
@@ -168,6 +181,7 @@ FUSION_WEIGHTS = {
     "eye_rubbing":        0.03,
     "scleral_redness":    0.02,
 }
+# Note: lighting and distance drift act as multiplicative modifiers on the final score.
 ```
 
 ---
@@ -213,12 +227,17 @@ Gate conditions: **10 continuous seconds in RED zone** + **120-second cooldown**
 # Webcam-free simulator — injects fake signals directly into the engine
 .venv\Scripts\python.exe tests/simulate_strain.py
 
-# Choose:
+# Phase 1 Zones:
 # 1 → GREEN (score ~10)
 # 2 → YELLOW (score ~45)
 # 3 → RED (score ~75, prescription fires after 10s)
 # 4 → CRITICAL (score ~95, palming prescription)
 # 5 → AUTO sequence (green → red → recovery flow)
+
+# Phase 2 Features (NEW):
+# 6 → LIGHTING MODIFIER (tests lighting scaling logic)
+# 7 → BLINK QUALITY (tests fake partial blink injections)
+# 8 → DISTANCE DRIFT (tests creeping proximity warnings)
 ```
 
 ## How to Run Tests
@@ -229,4 +248,4 @@ Gate conditions: **10 continuous seconds in RED zone** + **120-second cooldown**
 
 ---
 
-*Last updated: Phase 1 completion — 2026-03-30*
+*Last updated: Phase 2 completion (Lighting, Blink states, Posture drift added)*

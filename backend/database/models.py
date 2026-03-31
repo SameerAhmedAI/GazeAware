@@ -41,6 +41,11 @@ class SignalLog(Base):
     posture_lean = Column(Float, nullable=True)
     scleral_redness = Column(Float, nullable=True)
     strain_score = Column(Float, nullable=True)
+    # ── Phase 2 new signals ───────────────────────────────────────────────────
+    lighting_score = Column(Float, nullable=True)       # 0–100 face lighting quality
+    distance_drift_cm = Column(Float, nullable=True)    # cm drifted closer vs session start
+    blink_partial_ratio = Column(Float, nullable=True)  # fraction of partial blinks (0–1)
+
 
 
 class Prescription(Base):

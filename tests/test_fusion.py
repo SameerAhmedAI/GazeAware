@@ -34,9 +34,9 @@ def test_partial_signals():
 
 def test_classify_normal():
     engine = StrainFusionEngine()
-    assert engine.classify(20.0) == "normal"
+    assert engine.classify(20.0) == "GREEN"
 
 
 def test_classify_critical():
     engine = StrainFusionEngine()
-    assert engine.classify(80.0) == "critical"
+    assert engine.classify(80.0) == "RED"

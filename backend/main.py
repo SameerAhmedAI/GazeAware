@@ -57,6 +57,8 @@ from backend.signals.gaze_entropy      import GazeEntropySignal
 from backend.signals.eye_rubbing       import EyeRubbingSignal
 from backend.signals.posture_lean      import PostureLeanSignal
 from backend.signals.scleral_redness   import ScleralRednessSignal
+from backend.signals.lighting_analyzer import LightingAnalyzerSignal
+from backend.signals.distance_trend    import DistanceTrendTracker
 
 
 # ── MediaPipe eye landmark indices (for blink detection) ──────────────────────
@@ -98,7 +100,7 @@ def close_session(session_id: int, peak: float, avg: float) -> None:
         db.close()
 
 
-def log_signals(session_id: int, signals: dict, score: float) -> None:
+def log_signals(session_id: int, signals: dict, score: float, extras: dict | None = None) -> None:
     """Write one SignalLog row to SQLite. Non-fatal — DB errors never crash the loop."""
     db = SessionLocal()
     try:
@@ -115,6 +117,10 @@ def log_signals(session_id: int, signals: dict, score: float) -> None:
             posture_lean       = signals.get("posture_lean"),
             scleral_redness    = signals.get("scleral_redness"),
             strain_score       = score,
+            # Phase 2 new signal columns
+            lighting_score     = (extras or {}).get("lighting_score"),
+            distance_drift_cm  = (extras or {}).get("distance_drift_cm"),
+            blink_partial_ratio= signals.get("blink_quality"),  # blink_quality IS partial ratio
         )
         db.add(row)
         db.commit()
@@ -128,23 +134,36 @@ def log_signals(session_id: int, signals: dict, score: float) -> None:
 # ══════════════════════════════════════════════════════════════════════════════
 def print_banner():
     print("\n" + "═" * 60)
-    print("  GazeAware  |  Phase 1  |  Live Strain Monitor")
+    print("  GazeAware  |  Phase 2  |  Live Strain Monitor")
     print("═" * 60)
     print("  Controls:  Q=Quit  S=Snapshot  B=New baseline  Space=Test Rx")
     print("─" * 60 + "\n")
 
 
-def print_snapshot(signals: dict, score: float, zone: str, baseline: dict) -> None:
-    print("\n" + "─" * 52)
+def print_snapshot(signals: dict, score: float, zone: str, baseline: dict,
+                   lighting_stats: dict | None = None,
+                   drift_stats: dict | None = None) -> None:
+    print("\n" + "─" * 56)
     print(f"  📊 SIGNAL SNAPSHOT  |  Strain: {score:.1f}/100  [{zone}]")
-    print("─" * 52)
+    print("─" * 56)
     for name, val in signals.items():
         bar_w = 20
         filled = int(val * bar_w)
         bar = "█" * filled + "░" * (bar_w - filled)
         base = baseline.get(name, 0.0) if baseline else 0.0
         print(f"  {name:<22} [{bar}] {val:.3f}  (base:{base:.3f})")
-    print("─" * 52 + "\n")
+    if lighting_stats:
+        print("─" * 56)
+        print(f"  💡 Lighting: {lighting_stats.get('condition','?')}  "
+              f"score={lighting_stats.get('lighting_score',0):.0f}/100  "
+              f"modifier={lighting_stats.get('strain_modifier',1.0):.3f}×  "
+              f"brightness={lighting_stats.get('mean_brightness',0):.0f}  "
+              f"asymm={lighting_stats.get('asymmetry',0):.1f}")
+    if drift_stats:
+        print(f"  📏 Drift:    {drift_stats.get('drift_cm',0):.1f} cm from start  "
+              f"modifier={drift_stats.get('drift_modifier',1.0):.3f}×  "
+              f"readings={drift_stats.get('buffer_readings',0)}/10")
+    print("─" * 56 + "\n")
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -194,6 +213,9 @@ def main():
     sig_eye_rubbing     = EyeRubbingSignal()
     sig_posture         = PostureLeanSignal()
     sig_scleral         = ScleralRednessSignal()
+    # Phase 2: new camera-based signal modules
+    sig_lighting        = LightingAnalyzerSignal()
+    sig_dist_trend      = DistanceTrendTracker()
 
     # ── Fusion / baseline / prescription / recovery ───────────────────────────
     strain_engine = StrainFusionEngine()
@@ -214,6 +236,8 @@ def main():
     current_zone      = "GREEN"
     current_signals: dict = {}
     score_history:  list  = []
+    # Phase 2 extras logged alongside signals
+    current_extras: dict  = {}
 
     verifier: RecoveryVerifier | None = None
 
@@ -271,7 +295,11 @@ def main():
                     in_blink = True
                     sig_blink_rate.record_blink()
                     sig_blink_irreg.record_blink()
+                # ← Feed blink quality per-frame so trough is never missed
+                sig_blink_quality.feed_ear(avg_ear)
             else:
+                if in_blink:
+                    sig_blink_quality.feed_ear(avg_ear)  # closing edge
                 in_blink = False
 
         # ── Signal update every 500 ms ────────────────────────────────────────
@@ -281,7 +309,7 @@ def main():
 
             if face_landmarks:
                 blink_rate_val  = sig_blink_rate.get_signal_value()
-                blink_qual_val  = sig_blink_quality.update(face_landmarks)
+                blink_qual_val  = sig_blink_quality.get_signal_value()  # trough-tracked per-frame
                 screen_dist_val = sig_screen_dist.update(face_landmarks, w, h)
                 squint_val      = sig_squint.update(face_landmarks)
                 entropy_val     = sig_gaze_entropy.update(face_landmarks)
@@ -313,11 +341,29 @@ def main():
                     dist_cm = sig_screen_dist.last_distance_cm
                     calibrator.add_sample(bpm, avg_ear, dist_cm, dt=dt)
 
+                # ── Phase 2: lighting + distance trend ────────────────────────
+                lighting_signal  = sig_lighting.update(face_landmarks, frame)
+                dist_mod         = sig_dist_trend.update(sig_screen_dist.last_distance_cm)
+                lighting_mod     = sig_lighting.get_lighting_modifier()
+
+                # Build modifier dict (only include if > 1.0 to keep output clean)
+                active_modifiers = {}
+                if lighting_mod > 1.0:
+                    active_modifiers["light"] = lighting_mod
+                if dist_mod > 1.0:
+                    active_modifiers["drift"] = dist_mod
+
+                current_extras = {
+                    "lighting_score":   sig_lighting.lighting_score,
+                    "distance_drift_cm": sig_dist_trend.current_drift_cm,
+                }
+
                 # ── Compute strain score ──────────────────────────────────────
                 current_score, current_zone, _ = strain_engine.compute_and_print(
                     current_signals,
                     baseline=baseline_vals,
                     extra=f"EAR:{avg_ear:.3f}  FPS:{fps_display:.0f}  {strain_engine.get_trend()}",
+                    modifiers=active_modifiers if active_modifiers else None,
                 )
                 score_history.append(current_score)
 
@@ -346,7 +392,7 @@ def main():
 
         # ── DB signal logging every 5 s ───────────────────────────────────────
         if now - last_log_time >= LOG_INTERVAL and current_signals:
-            log_signals(session_id, current_signals, current_score)
+            log_signals(session_id, current_signals, current_score, extras=current_extras)
             last_log_time = now
 
         # ── Draw minimal HUD on frame ─────────────────────────────────────────
@@ -359,8 +405,12 @@ def main():
         if key in (ord('q'), 27):
             break
         elif key == ord('s'):
-            print_snapshot(current_signals, current_score, current_zone,
-                           calibrator.baseline if calibrator.is_ready else {})
+            print_snapshot(
+                current_signals, current_score, current_zone,
+                calibrator.baseline if calibrator.is_ready else {},
+                lighting_stats=sig_lighting.get_stats(),
+                drift_stats=sig_dist_trend.get_stats(),
+            )
         elif key == ord('b'):
             print("\n  [Baseline] 🔄 Forcing fresh baseline calibration...\n")
             calibrator = BaselineCalibrator()
