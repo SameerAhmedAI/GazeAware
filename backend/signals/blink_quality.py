@@ -1,5 +1,5 @@
 """
-Signal: Blink Quality Classifier  (Phase 2 — extended)
+Signal: Blink Quality Classifier  (Phase 1.1)
 ════════════════════════════════════════════════════════
 Classifies every detected blink as Full or Partial by tracking the minimum
 EAR (Eye Aspect Ratio) reached during the blink closure phase.

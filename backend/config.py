@@ -1,5 +1,5 @@
 """
-GazeAware — Centralised Configuration
+GazeAware Phase 1.1 — Centralised Configuration
 All thresholds, fusion weights, and user preferences live here.
 """
 

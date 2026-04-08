@@ -1,5 +1,5 @@
 """
-Signal: Distance Trend Tracker  (Phase 2 — new)
+Signal: Distance Trend Tracker  (Phase 1.1)
 ═════════════════════════════════════════════════
 Tracks face distance from screen over time using the readings from the
 existing ScreenDistanceSignal module. Detects posture drift and critical

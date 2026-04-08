@@ -1,5 +1,5 @@
 """
-GazeAware — Strain Zone Simulator + Phase 2 & 3 Feature Tester
+GazeAware — Strain Zone Simulator + Phase 1.1 & 1.2 Feature Tester
 ════════════════════════════════════════════════════════════════
 Developer test script. Injects fake signal values directly into the
 strain engine and prescription system WITHOUT needing a webcam.
@@ -152,7 +152,7 @@ def run_simulation(profile_name: str, duration_seconds: int = 30):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Phase 2 Feature Simulators
+# Phase 1.1 Feature Simulators
 # ─────────────────────────────────────────────────────────────────────────────
 
 def simulate_lighting_modifier():
@@ -424,7 +424,7 @@ def simulate_overlay():
 
 def interactive_menu():
     print("\n" + SEP60)
-    print("  GazeAware -- Strain Zone Simulator  (Phase 1 + 2 + 3)")
+    print("  GazeAware -- Strain Zone Simulator  (Phase 1 + 1.1 + 1.2)")
     print(SEP60)
     print("  Pick a mode to simulate:\n")
     print("  --- Phase 1 Zones -------------------------------------------")
@@ -433,11 +433,11 @@ def interactive_menu():
     print("  3  -> RED      (danger zone, score ~75)")
     print("  4  -> CRITICAL (score ~95, prescription fires fast)")
     print("  5  -> AUTO     (green -> red -> recovery sequence)")
-    print("  --- Phase 2 Signal Tests ------------------------------------")
+    print("  --- Phase 1.1 Signal Tests ------------------------------------")
     print("  6  -> LIGHTING MODIFIER  (good/moderate/bad lighting effects)")
     print("  7  -> BLINK QUALITY      (full vs partial blinks, warning at 60%)")
     print("  8  -> DISTANCE DRIFT     (posture drift warning + critical zone)")
-    print("  --- Phase 3 Ghost Overlay ------------------------------------")
+    print("  --- Phase 1.2 Ghost Overlay ------------------------------------")
     print("  9  -> OVERLAY TEST       (Vitality Ring + Forced Recovery demo)")
     print("\n  Enter number (or Ctrl+C to quit): ", end="")
 

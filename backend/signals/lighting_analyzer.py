@@ -1,5 +1,5 @@
 """
-Signal: Ambient Lighting Analyzer  (Phase 2 — new)
+Signal: Ambient Lighting Analyzer  (Phase 1.1)
 ════════════════════════════════════════════════════
 Analyses ambient lighting quality by examining the face region extracted
 from the webcam frame every 500 ms.

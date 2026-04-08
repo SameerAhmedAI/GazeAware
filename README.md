@@ -3,7 +3,7 @@
 > **AI-powered passive eye strain monitor** — webcam only, fully local, zero wearables.
 
 **Authors:** Sameer Ahmed & Muhammad Ahmed Rayyan | **Institution:** SZABIST, Karachi  
-**Status:** Phase 3 Complete (Ghost Overlay, Forced Recovery, TFSI / Dry-Eye prediction added)  
+**Status:** Phase 1.2 Complete (Ghost Overlay, Forced Recovery, TFSI / Dry-Eye prediction added)  
 **Python:** 3.11+ | **mediapipe:** 0.10.14 | **opencv:** 4.13.0  
 
 ---
@@ -82,7 +82,7 @@ When the camera window opens, you can trigger specific events by pressing keys *
 - **Bad Lighting**: Dim the room lights or move a bright window directly behind your head. A `💡` multiplier will appear in the terminal, scaling your strain up dynamically.
 - **Posture Drift**: Lean towards your screen by at least 10cm. Wait a few seconds until the posture drift warning automatically prints, adding a `📏` multiplier to your score.
 
-### 👻 Test Ghost Overlay & Tear-Film Index (Phase 3)
+### 👻 Test Ghost Overlay & Tear-Film Index (Phase 1.2)
 - **Vitality Ring**: An always-on HUD ring sits natively in the bottom-right corner of your screen at 10% opacity. It fills up orange/red precisely tracking your strain score. Hover your mouse over it to make it 100% visible.
 - **Forced Recovery**: Push your strain score past **90/100** (stare without blinking at a close distance). A full-screen dark overlay will fade in, forcing you to follow a moving blue ball to relax your eye muscles for 20 seconds. (Press `Esc` twice to bypass).
 - **TFSI / Dry-Eye Alert**: Wait for your blink quality ratio to decay significantly, or test it explicitly by pressing `T`. A medical banner will smoothly fade in from the top of the monitor, warning you of critically unstable tear film and holding for 10 seconds.
@@ -99,7 +99,7 @@ python tests/simulate_strain.py
 
 Choose from 8 distinct operating modes to test individual features:
 - **Phase 1 Strain Fusion**: Modes 1–5 test generic zone combinations (Green, Yellow, Red, Auto-flow).
-- **Phase 2 Edge-cases**: Mode 6 tests the lighting modifier scaling, Mode 7 injects fake blinks to test partial-blink logic, and Mode 8 simulates slow posture drift over time.
+- **Phase 1.1 Edge-cases**: Mode 6 tests the lighting modifier scaling, Mode 7 injects fake blinks to test partial-blink logic, and Mode 8 simulates slow posture drift over time.
 
 ---
 

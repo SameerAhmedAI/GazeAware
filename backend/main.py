@@ -123,7 +123,7 @@ def log_signals(session_id: int, signals: dict, score: float, extras: dict | Non
             posture_lean       = signals.get("posture_lean"),
             scleral_redness    = signals.get("scleral_redness"),
             strain_score       = score,
-            # Phase 2 new signal columns
+            # Phase 1.1 new signal columns
             lighting_score     = (extras or {}).get("lighting_score"),
             distance_drift_cm  = (extras or {}).get("distance_drift_cm"),
             blink_partial_ratio= signals.get("blink_quality"),  # blink_quality IS partial ratio
@@ -140,7 +140,7 @@ def log_signals(session_id: int, signals: dict, score: float, extras: dict | Non
 # ══════════════════════════════════════════════════════════════════════════════
 def print_banner():
     print("\n" + "═" * 60)
-    print("  GazeAware  |  Phase 3  |  Live Strain Monitor + Ghost Overlay")
+    print("  GazeAware  |  Phase 1.2  |  Live Strain Monitor + Ghost Overlay")
     print("═" * 60)
     print("  Controls:  Q=Quit  S=Snapshot  B=New baseline  Space=Test Rx")
     print("  Overlays:  Vitality Ring (corner HUD) + Forced Recovery at 90+")
@@ -232,7 +232,7 @@ def main():
     sig_eye_rubbing     = EyeRubbingSignal()
     sig_posture         = PostureLeanSignal()
     sig_scleral         = ScleralRednessSignal()
-    # Phase 2: new camera-based signal modules
+    # Phase 1.1: new camera-based signal modules
     sig_lighting        = LightingAnalyzerSignal()
     sig_dist_trend      = DistanceTrendTracker()
 
@@ -256,7 +256,7 @@ def main():
     current_zone      = "GREEN"
     current_signals: dict = {}
     score_history:  list  = []
-    # Phase 2 extras logged alongside signals
+    # Phase 1.1 extras logged alongside signals
     current_extras: dict  = {}
 
     verifier: RecoveryVerifier | None = None
@@ -361,7 +361,7 @@ def main():
                     dist_cm = sig_screen_dist.last_distance_cm
                     calibrator.add_sample(bpm, avg_ear, dist_cm, dt=dt)
 
-                # ── Phase 2: lighting + distance trend ────────────────────────
+                # ── Phase 1.1: lighting + distance trend ────────────────────────
                 lighting_signal  = sig_lighting.update(face_landmarks, frame)
                 dist_mod         = sig_dist_trend.update(sig_screen_dist.last_distance_cm)
                 lighting_mod     = sig_lighting.get_lighting_modifier()

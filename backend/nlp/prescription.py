@@ -4,7 +4,7 @@ GazeAware — Real-Time Prescription Engine  (Phase 1)
 Fires hardcoded exercise prescriptions when strain reaches RED zone (71+)
 for more than 10 consecutive seconds.
 
-5 prescription rules (hardcoded, Claude API integration comes in Phase 2):
+5 prescription rules (hardcoded, Claude API integration comes in Phase 1.1):
 
     1. Low blink rate      → "CLOSE EYES FULLY, HOLD 3 SECONDS, REPEAT 10 TIMES"
     2. High squint ratio   → "RELAX JAW AND FOREHEAD, LOOK AWAY FROM SCREEN NOW"

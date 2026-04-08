@@ -66,18 +66,6 @@ GazeAware uses a webcam to monitor eye strain in real time. It:
 | `backend/database/models.py` | Added 3 new columns to SignalLog: `lighting_score`, `distance_drift_cm`, `blink_partial_ratio` |
 | `backend/main.py` | Imported + instantiated `LightingAnalyzerSignal` and `DistanceTrendTracker`; wired into 500ms loop; passes `active_modifiers` dict to strain engine; extended `log_signals()` and `print_snapshot()` |
 
-### ✅ Phase 1.2 — Ghost Overlay System (Complete)
-**Files created/modified in Phase 1.2:**
-
-| File | What changed |
-|------|-------------|
-| `backend/overlay/__init__.py` | New package |
-| `backend/overlay/vitality_ring.py` | **NEW** — Always-on-top translucent ring HUD (10% opacity). Colour-coded arc fills proportionally to strain score, pulsing glow, hover-to-reveal (80%), draggable, runs in daemon thread. |
-| `backend/overlay/forced_recovery.py` | **NEW** — Full-screen forced-recovery overlay. Dims entire screen at 82% opacity, shows ball-pursuit Lissajous animation (60fps), countdown ring, 5 rotating instruction messages, Esc double-press dismiss, fade in/out transition. Fires at strain ≥ 90, runs in daemon thread. |
-| `backend/overlay/manager.py` | **NEW** — `OverlayManager` facade: owns both overlays, routes every score update to `VitalityRing`, triggers `ForcedRecoveryOverlay` at ≥ 90 with 3-min cooldown, hides ring while full-screen overlay is active. |
-| `backend/main.py` | Imports `OverlayManager`; starts overlays before webcam loop; calls `overlays.update()` every 500ms; calls `overlays.stop()` on exit; banner updated to Phase 1.2. |
-| `tests/simulate_strain.py` | Added mode 9: `simulate_overlay()` — ramps score 0→95 over 30s to demo both overlays without webcam; menu updated. |
-
 ---
 
 ## File Structure (Current)
@@ -115,12 +103,6 @@ GazeAware/
 │   │   ├── strain_engine.py  ← Core: weighted sum → 0–100 score
 │   │   ├── baseline.py       ← 60s calibration, SQLite save/load
 │   │   └── crash_predictor.py ← Linear trend extrapolation (stub, working)
-│   │
-│   ├── overlay/              ← Phase 1.2 Ghost Overlay system
-│   │   ├── __init__.py
-│   │   ├── vitality_ring.py  ← 10%-opacity corner HUD ring (always on top)
-│   │   ├── forced_recovery.py← Full-screen dimming + ball-pursuit animation
-│   │   └── manager.py        ← OverlayManager facade (single import for main.py)
 │   │
 │   ├── nlp/
 │   │   ├── prescription.py   ← Hardcoded 5-rule engine (Phase 1)
@@ -227,6 +209,18 @@ Gate conditions: **10 continuous seconds in RED zone** + **120-second cooldown**
 
 ---
 
+## Roadmap (Not Yet Built)
+
+| Phase | What to build |
+|-------|--------------|
+| **Phase 1.1** | Replace hardcoded prescriptions with Claude API — `ClaudeEngine` in `nlp/claude_engine.py` is stubbed, just needs wiring into `prescription.py` factory |
+| **Phase 1.2** | `context_detector.py` — read OS process list → detect coding/browsing/video and pass context into prescription prompts |
+| **Phase 4** | `crash_predictor.py` is working — wire it into `main.py` to show "⚡ Crash predicted in 45s" warnings |
+| **Phase 5** | `weekly_report.py` and `pdf_export.py` — query `signal_logs` table, generate trends, export PDF via reportlab |
+| **Phase 6** | PyInstaller packaging — `pyinstaller>=6.0.0` is already installed |
+
+---
+
 ## How to Test Without a Webcam
 
 ```powershell
@@ -254,4 +248,4 @@ Gate conditions: **10 continuous seconds in RED zone** + **120-second cooldown**
 
 ---
 
-*Last updated: Phase 1.2 completion (Ghost Overlay — Vitality Ring HUD + Forced Recovery animation)*
+*Last updated: Phase 1.1 completion (Lighting, Blink states, Posture drift added)*

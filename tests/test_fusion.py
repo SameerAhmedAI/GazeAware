@@ -1,5 +1,5 @@
 """
-Tests — Strain Fusion Engine (Phase 2)
+Tests — Strain Fusion Engine (Phase 1.1)
 """
 import pytest
 from backend.fusion.strain_engine import StrainFusionEngine
