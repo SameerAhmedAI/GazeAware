@@ -78,6 +78,20 @@ GazeAware uses a webcam to monitor eye strain in real time. It:
 | `backend/main.py` | Imports `OverlayManager`; starts overlays before webcam loop; calls `overlays.update()` every 500ms; calls `overlays.stop()` on exit; banner updated to Phase 1.2. |
 | `tests/simulate_strain.py` | Added mode 9: `simulate_overlay()` — ramps score 0→95 over 30s to demo both overlays without webcam; menu updated. |
 
+### ✅ Phase 2 — Groq NLP Prescription Engine (Complete)
+**Files created/modified in Phase 2:**
+
+| File | What changed |
+|------|-------------|
+| `backend/nlp/groq_engine.py` | **NEW** — `GroqEngine` class. `generate_prescription(score, signals, context)` calls `llama-3.1-8b-instant` via Groq API. `generate_recovery_feedback(before, after)` generates post-exercise messages. Both methods fall back to safe hardcoded strings on API failure. |
+| `backend/nlp/context_detector.py` | **REPLACED** — `get_active_context()` uses `ctypes.windll.user32.GetForegroundWindow` + `GetWindowThreadProcessId` + `psutil.Process.name()` to identify the focused app on Windows. Falls back to process-list scan. All context labels sourced from `config.py`. `detect_context()` kept as alias. |
+| `backend/nlp/prescription.py` | **UPDATED** — Added `USE_GROQ` flag (reads `GAZEAWARE_USE_GROQ` env var, default `True`). Added `maybe_prescribe()` method (update() is now an alias). When `USE_GROQ=True` and `GroqEngine` initialises, Groq generates prescriptions. Falls back to hardcoded rules if Groq fails. 10s RED gate and 120s cooldown always enforced. All thresholds moved to `config.py`. |
+| `backend/config.py` | Added `GROQ_MODEL`, `GROQ_MAX_TOKENS`, `GROQ_TEMPERATURE`, `GROQ_SYSTEM_PROMPT`, `GROQ_RECOVERY_SYSTEM_PROMPT`, `PROCESS_CONTEXT_MAP`, `PROCESS_CONTEXT_DEFAULT`, `PRESCRIPTION_RED_ZONE_THRESHOLD`, `PRESCRIPTION_RED_ZONE_HOLD_SECONDS`, `PRESCRIPTION_COOLDOWN_SECONDS`, `PRESCRIPTION_*_THRESHOLD` constants. |
+| `.env.example` | Added `GROQ_API_KEY=your_key_here` and `GAZEAWARE_USE_GROQ=true`. |
+| `tests/test_groq_engine.py` | **NEW** — 6 pytest tests. Mocks `groq.Groq` client. Verifies `generate_prescription` and `generate_recovery_feedback` return non-empty strings. Tests fallback on API error and `EnvironmentError` on missing key. |
+
+
+
 ---
 
 ## File Structure (Current)
