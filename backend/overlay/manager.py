@@ -96,6 +96,24 @@ class OverlayManager:
         """Show the TFSI medical banner. Called from main loop when alert_needed=True."""
         self._tfsi_banner.show(tfsi_result)
 
+    def warn_imminent_crash(self, seconds: float) -> None:
+        """
+        Pulse the VitalityRing in amber to warn of an imminent cognitive crash.
+
+        This is a soft warning — distinct from the full forced-recovery veil.
+        It pulses the corner HUD ring amber for ~8 seconds so the user sees a
+        colour shift without being interrupted.
+
+        Does NOT trigger the ForcedRecoveryOverlay.
+
+        Args:
+            seconds: Estimated seconds until predicted crash (for display purposes).
+        """
+        try:
+            self._ring.pulse_amber_warning(duration_seconds=8.0)
+        except Exception:
+            pass   # overlay errors must never crash the monitoring loop
+
     # ── Convenience property ──────────────────────────────────────────────────
     @property
     def forced_active(self) -> bool:

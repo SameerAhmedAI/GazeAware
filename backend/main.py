@@ -1,9 +1,14 @@
 """
-GazeAware — Phase 1 Main Entry Point
-═════════════════════════════════════
+GazeAware — Phase 2.1 Main Entry Point
+═══════════════════════════════════════
 Starts the webcam, builds personal baseline, monitors all 9 signals,
 fuses them into a live strain score, fires prescriptions when needed,
 and verifies recovery — all printed to terminal.
+
+New in Phase 2.1:
+    – Cognitive Crash Predictor (linear trend extrapolation)
+    – TFSI Auto-Trigger (tear film auto-alert every 5 min)
+    – Eye Rubbing Detection (MediaPipe Hands real implementation)
 
 Run:
     .venv\\Scripts\\python.exe backend/main.py
@@ -13,6 +18,7 @@ Controls:
     S     → Print snapshot of all signal values
     B     → Force new baseline calibration (ignores saved baseline)
     Space → Manually trigger a prescription (for testing)
+    T     → Manually trigger the TFSI Dry-Eye Alert banner
 """
 
 import sys
@@ -37,6 +43,9 @@ import mediapipe as mp
 from backend.config import (
     WEBCAM_INDEX, TARGET_FPS, EAR_BLINK_THRESHOLD,
     SIGNAL_UPDATE_INTERVAL_MS,
+    CRASH_PREDICTOR_CHECK_INTERVAL_TICKS,
+    CRASH_PREDICTOR_MIN_CONFIDENCE,
+    TFSI_AUTO_CHECK_INTERVAL_TICKS,
 )
 from backend.database.db import init_db, SessionLocal
 from backend.database.models import Session as DBSession, SignalLog
@@ -65,6 +74,8 @@ from backend.overlay.manager import OverlayManager
 
 # ── TFSI (Tear-Film Stability Index) ──────────────────────────────────────────
 from backend.tearfilm.tear_film_index import TearFilmIndex
+# ── Phase 2.1: TFSI Auto-Trigger model ────────────────────────────────────────
+from backend.signals.tfsi_model import TFSIModel
 
 
 # ── MediaPipe eye landmark indices (for blink detection) ──────────────────────
@@ -119,7 +130,7 @@ def log_signals(session_id: int, signals: dict, score: float, extras: dict | Non
             squint_ratio       = signals.get("squint"),
             gaze_entropy       = signals.get("gaze_entropy"),
             blink_irregularity = signals.get("blink_irregularity"),
-            eye_rubbing        = int(signals.get("eye_rubbing", 0)),
+            eye_rubbing        = signals.get("eye_rubbing", 0.0),
             posture_lean       = signals.get("posture_lean"),
             scleral_redness    = signals.get("scleral_redness"),
             strain_score       = score,
@@ -140,10 +151,10 @@ def log_signals(session_id: int, signals: dict, score: float, extras: dict | Non
 # ══════════════════════════════════════════════════════════════════════════════
 def print_banner():
     print("\n" + "═" * 60)
-    print("  GazeAware  |  Phase 1.2  |  Live Strain Monitor + Ghost Overlay")
+    print("  GazeAware  |  Phase 2.1  |  Crash Predictor + TFSI Auto + Eye Rubbing")
     print("═" * 60)
-    print("  Controls:  Q=Quit  S=Snapshot  B=New baseline  Space=Test Rx")
-    print("  Overlays:  Vitality Ring (corner HUD) + Forced Recovery at 90+")
+    print("  Controls:  Q=Quit  S=Snapshot  B=New baseline  T=TFSI alert  Space=Test Rx")
+    print("  Overlays:  Vitality Ring (corner HUD) ┊ Forced Recovery at 90+")
     print("─" * 60 + "\n")
 
 
@@ -242,6 +253,8 @@ def main():
     crash_pred    = CrashPredictor()
     rx_engine     = PrescriptionEngine(session_id)
     tfsi_engine   = TearFilmIndex()
+    # Phase 2.1: TFSI Auto-Trigger model
+    tfsi_model    = TFSIModel()
 
     # Try to load baseline from previous session
     calibrator.load_or_start(session_id)
@@ -258,6 +271,9 @@ def main():
     score_history:  list  = []
     # Phase 1.1 extras logged alongside signals
     current_extras: dict  = {}
+
+    # Phase 2.1: tick counter for interval-based checks
+    tick_counter: int = 0
 
     verifier: RecoveryVerifier | None = None
 
@@ -326,6 +342,7 @@ def main():
         dt = now - last_update_time
         if dt >= UPDATE_INTERVAL:
             last_update_time = now
+            tick_counter = (tick_counter + 1) % 3600
 
             if face_landmarks:
                 blink_rate_val  = sig_blink_rate.get_signal_value()
@@ -334,9 +351,9 @@ def main():
                 squint_val      = sig_squint.update(face_landmarks)
                 entropy_val     = sig_gaze_entropy.update(face_landmarks)
                 irreg_val       = sig_blink_irreg.get_signal_value()
-                eye_rub_val     = sig_eye_rubbing.update(
+                eye_rub_val     = sig_eye_rubbing.compute(
                     face_landmarks,
-                    hand_results.multi_hand_landmarks if hand_results.multi_hand_landmarks else [],
+                    hand_results,
                 )
                 posture_val     = sig_posture.update(face_landmarks, w, h)
                 scleral_val     = sig_scleral.update(face_landmarks, frame)
@@ -395,10 +412,38 @@ def main():
                 if tfsi_result.get("alert_needed"):
                     overlays.notify_tfsi_alert(tfsi_result)
 
-                # ── Crash predictor ───────────────────────────────────────────
-                secs_to_crash = crash_pred.update(current_score)
-                if secs_to_crash:
-                    print(f"  ⚡ CRASH WARNING: Predicted critical strain in {secs_to_crash:.0f}s")
+                # ── Phase 2.1: Feed TFSI Auto-Trigger model ────────────────────
+                try:
+                    tfsi_model.feed(current_signals.get("blink_quality", 0.0))
+                    # Check auto-trigger every 60th tick (30 seconds)
+                    if tick_counter % TFSI_AUTO_CHECK_INTERVAL_TICKS == 0:
+                        if tfsi_model.should_auto_trigger():
+                            auto_alert = tfsi_model.build_alert_dict()
+                            overlays.notify_tfsi_alert(auto_alert)
+                            print(
+                                "\n  👁️  TFSI AUTO-ALERT: Tear film critically unstable — "
+                                "blink fully now\n"
+                            )
+                except Exception:
+                    pass  # TFSI model must never crash the loop
+
+                # ── Phase 2.1: Cognitive Crash Predictor ──────────────────────
+                try:
+                    # Feed every tick (regardless of interval check)
+                    crash_pred.update(current_score)
+                    # Check prediction every CRASH_PREDICTOR_CHECK_INTERVAL_TICKS
+                    if tick_counter % CRASH_PREDICTOR_CHECK_INTERVAL_TICKS == 0:
+                        prediction = crash_pred.predict()
+                        if prediction.will_crash:
+                            eta  = int(prediction.seconds_until_crash)
+                            conf = int(prediction.confidence * 100)
+                            print(
+                                f"\n  ⚠️  COGNITIVE CRASH PREDICTED IN ~{eta}s "
+                                f"(confidence {conf}%) — Consider taking a break now\n"
+                            )
+                            overlays.warn_imminent_crash(seconds=prediction.seconds_until_crash)
+                except Exception:
+                    pass  # Crash predictor must never crash the loop
 
                 # ── Prescription engine ───────────────────────────────────────
                 if verifier is None or verifier.is_done():

@@ -90,7 +90,20 @@ GazeAware uses a webcam to monitor eye strain in real time. It:
 | `.env.example` | Added `GROQ_API_KEY=your_key_here` and `GAZEAWARE_USE_GROQ=true`. |
 | `tests/test_groq_engine.py` | **NEW** — 6 pytest tests. Mocks `groq.Groq` client. Verifies `generate_prescription` and `generate_recovery_feedback` return non-empty strings. Tests fallback on API error and `EnvironmentError` on missing key. |
 
+### ✅ Phase 2.1 — Crash Predictor + TFSI Auto-Trigger + Eye Rubbing (Complete)
+**Files created/modified in Phase 2.1:**
 
+| File | What changed |
+|------|-------------|
+| `backend/fusion/crash_predictor.py` | **REPLACED** — Full `CrashPrediction` dataclass (`will_crash`, `seconds_until_crash`, `confidence`). `predict_crash()` uses `numpy.polyfit(degree=1)` over 90-second rolling deque (maxlen=180). Fires only when score > 55, slope > 0, R² > 0.6, and crash within 120s. |
+| `backend/signals/tfsi_model.py` | **NEW** — `TFSIModel` class. 5-minute rolling window (deque maxlen=600). `compute_tfsi_stability()` returns 0–1.0. `should_auto_trigger()` fires when stability < 0.25, window ≥ 60 readings, and 300s cooldown elapsed. `build_alert_dict()` returns overlay-compatible payload. |
+| `backend/signals/eye_rubbing.py` | **REPLACED** — Full MediaPipe Hands implementation. Extracts wrist (lm 0) and index fingertip (lm 8). Eye centres from face mesh (lm 33, 133, 362, 263). Proximity threshold 0.08 normalised. Counter-based signal with per-tick decay. `compute(face_landmarks, hand_results)` is primary; `update()` kept as legacy alias. |
+| `backend/overlay/vitality_ring.py` | Added `pulse_amber_warning(duration_seconds)` method. Temporarily overrides ring colour to amber (#ff8c00) without triggering forced recovery overlay. |
+| `backend/overlay/manager.py` | Added `warn_imminent_crash(seconds)` method. Calls `pulse_amber_warning` on VitalityRing. Safe — exceptions never propagate to main loop. |
+| `backend/config.py` | Added `CRASH_PREDICTOR_*` (7 keys), `TFSI_AUTO_*` / `TFSI_*` (6 keys), `EYE_RUBBING_*` (7 keys). |
+| `backend/main.py` | Updated to Phase 2.1. Imports `TFSIModel`, new config keys. `tick_counter` tracks 500ms ticks. Feeds crash predictor every tick, checks every 10th. Feeds TFSIModel every tick, checks auto-trigger every 60th. Eye rubbing now calls `compute()` with full `hand_results`. |
+| `tests/simulate_strain.py` | Added mode 10: `simulate_eye_rubbing()` — injects eye_rubbing=0.8 for 15s to verify measurable strain rise. Menu updated to Phase 2.1. |
+| `tests/verify_phase21.py` | **NEW** — Automated assertion-based verification script (no webcam needed). Tests all three features. |
 
 ---
 
@@ -107,7 +120,7 @@ GazeAware/
 │
 ├── backend/
 │   ├── __init__.py
-│   ├── main.py               ← ENTRY POINT — run this
+│   ├── main.py               ← ENTRY POINT — run this (Phase 2.1)
 │   ├── config.py             ← All thresholds, never hardcode values elsewhere
 │   │
 │   ├── database/
@@ -121,26 +134,31 @@ GazeAware/
 │   │   ├── screen_distance.py
 │   │   ├── squint_detector.py
 │   │   ├── gaze_entropy.py
-│   │   ├── eye_rubbing.py
+│   │   ├── eye_rubbing.py        ← Phase 2.1: REPLACED — real MediaPipe Hands detection
 │   │   ├── posture_lean.py
-│   │   └── scleral_redness.py
+│   │   ├── scleral_redness.py
+│   │   ├── lighting_analyzer.py  ← Phase 1.1
+│   │   ├── distance_trend.py     ← Phase 1.1
+│   │   └── tfsi_model.py         ← Phase 2.1 NEW — TFSI auto-trigger model
 │   │
 │   ├── fusion/
 │   │   ├── strain_engine.py  ← Core: weighted sum → 0–100 score
 │   │   ├── baseline.py       ← 60s calibration, SQLite save/load
-│   │   └── crash_predictor.py ← Linear trend extrapolation (stub, working)
+│   │   └── crash_predictor.py ← Phase 2.1 REPLACED — CrashPrediction dataclass + R² linear trend
 │   │
 │   ├── overlay/              ← Phase 1.2 Ghost Overlay system
 │   │   ├── __init__.py
-│   │   ├── vitality_ring.py  ← 10%-opacity corner HUD ring (always on top)
+│   │   ├── vitality_ring.py  ← Phase 2.1: added pulse_amber_warning()
 │   │   ├── forced_recovery.py← Full-screen dimming + ball-pursuit animation
-│   │   └── manager.py        ← OverlayManager facade (single import for main.py)
+│   │   ├── tfsi_alert.py     ← TFSI medical banner
+│   │   └── manager.py        ← Phase 2.1: added warn_imminent_crash()
 │   │
 │   ├── nlp/
-│   │   ├── prescription.py   ← Hardcoded 5-rule engine (Phase 1)
+│   │   ├── prescription.py   ← Hardcoded 5-rule engine + Groq toggle (Phase 2)
+│   │   ├── groq_engine.py    ← Groq LLaMA integration (Phase 2)
 │   │   ├── claude_engine.py  ← Claude integration (Phase 1.1 — stub)
 │   │   ├── llama_engine.py   ← Local LLaMA fallback (Phase 1.1 — stub)
-│   │   ├── context_detector.py ← OS process → activity (stub)
+│   │   ├── context_detector.py ← OS process → activity (Phase 2)
 │   │   └── prompts.py        ← Prompt templates for NLP engines
 │   │
 │   ├── recovery/
@@ -154,7 +172,9 @@ GazeAware/
     ├── test_signals.py       ← Pytest unit tests for signal modules
     ├── test_fusion.py        ← Pytest unit tests for strain engine
     ├── test_nlp.py           ← Pytest tests for NLP prompts
-    └── simulate_strain.py    ← Webcam-free strain zone simulator (NEW)
+    ├── test_groq_engine.py   ← Phase 2: Groq engine unit tests
+    ├── simulate_strain.py    ← Webcam-free strain zone simulator (modes 1–10)
+    └── verify_phase21.py     ← Phase 2.1: automated verification scripts
 ```
 
 ---
@@ -268,4 +288,29 @@ Gate conditions: **10 continuous seconds in RED zone** + **120-second cooldown**
 
 ---
 
-*Last updated: Phase 1.2 completion (Ghost Overlay — Vitality Ring HUD + Forced Recovery animation)*
+*Last updated: Phase 2.1 completion (Cognitive Crash Predictor + TFSI Auto-Trigger + Eye Rubbing Detection)*
+
+### New Config Keys Added in Phase 2.1 (`backend/config.py`)
+
+| Key | Value | Purpose |
+|-----|-------|---------|
+| `CRASH_PREDICTOR_DEQUE_MAXLEN` | 180 | 90-second rolling deque (one entry per 500ms tick) |
+| `CRASH_PREDICTOR_CHECK_INTERVAL_TICKS` | 10 | Check prediction every 10 ticks (5 seconds) |
+| `CRASH_PREDICTOR_MIN_CONFIDENCE` | 0.6 | Minimum R² for prediction to be valid |
+| `CRASH_PREDICTOR_SCORE_THRESHOLD` | 55.0 | Min current score before warning fires |
+| `CRASH_PREDICTOR_MAX_SECONDS` | 120.0 | Only warn if crash ≤ 120s ahead |
+| `CRASH_PREDICTOR_TARGET_SCORE` | 90.0 | Defines a "crash" threshold |
+| `CRASH_PREDICTOR_MIN_SAMPLES` | 10 | Minimum deque entries before prediction |
+| `TFSI_AUTO_DEQUE_MAXLEN` | 600 | 5-minute rolling window (600 × 0.5s) |
+| `TFSI_STABILITY_THRESHOLD` | 0.25 | Auto-trigger below this stability |
+| `TFSI_AUTO_COOLDOWN_SECONDS` | 300 | 5-minute cooldown between auto-triggers |
+| `TFSI_MIN_WINDOW_READINGS` | 60 | Min readings before auto-trigger possible |
+| `TFSI_AUTO_CHECK_INTERVAL_TICKS` | 60 | Check every 60 ticks (30 seconds) |
+| `TFSI_PARTIAL_BLINK_THRESHOLD` | 0.5 | blink_quality ≥ this = "partial" reading |
+| `EYE_RUBBING_LEFT_EYE_LANDMARKS` | [33, 133] | Face mesh landmarks for left eye centre |
+| `EYE_RUBBING_RIGHT_EYE_LANDMARKS` | [362, 263] | Face mesh landmarks for right eye centre |
+| `EYE_RUBBING_WRIST_IDX` | 0 | MediaPipe Hand landmark: wrist |
+| `EYE_RUBBING_FINGERTIP_IDX` | 8 | MediaPipe Hand landmark: index fingertip |
+| `EYE_RUBBING_PROXIMITY_THRESHOLD` | 0.08 | Normalised distance threshold for detection |
+| `EYE_RUBBING_COUNTER_MAX` | 10 | counter/max = signal 0.0–1.0 |
+| `EYE_RUBBING_DECAY_PER_TICK` | 0.05 | Signal decay per tick without rubbing |

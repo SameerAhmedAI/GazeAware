@@ -1,6 +1,6 @@
 """
-GazeAware — Strain Zone Simulator + Phase 1.1 & 1.2 Feature Tester
-════════════════════════════════════════════════════════════════
+GazeAware — Strain Zone Simulator + Phase 1.1 & 1.2 & 2.1 Feature Tester
+══════════════════════════════════════════════════════════════
 Developer test script. Injects fake signal values directly into the
 strain engine and prescription system WITHOUT needing a webcam.
 
@@ -10,6 +10,7 @@ Use this to:
   - Test partial blink detection and warning (mode 7)
   - Test posture drift detection and warning (mode 8)
   - Test Ghost Overlay system (Vitality Ring + Forced Recovery) (mode 9)
+  - Test Eye Rubbing signal injection (mode 10)
 
 Run:
     .venv\\Scripts\\python.exe tests/simulate_strain.py
@@ -422,9 +423,68 @@ def simulate_overlay():
     print("\n  [OK] Overlay test complete.\n")
 
 
+def simulate_eye_rubbing():
+    """
+    MODE 10: Eye Rubbing Signal Injection
+    ──────────────────────────────────────────────────────────────────────────
+    Injects a fake eye_rubbing signal at 0.8 for 15 seconds into the
+    strain engine and verifies that it measurably raises the strain score.
+
+      Phase A (15s): eye_rubbing = 0.8  — score should rise noticeably
+                     Baseline profile: YELLOW (moderate strain)
+                     Eye rubbing adds: 0.8 × 0.03 weight = +2.4 strain pts raw
+                     (amplified further if score is above baseline)
+      Phase B (15s): eye_rubbing = 0.0  — rubbing stops, score recovers
+    """
+    print("\n" + SEP60)
+    print("  MODE 10: Eye Rubbing Signal Injection")
+    print(SEP60)
+    print("  Injects fake eye_rubbing=0.8 for 15s at YELLOW base strain.")
+    print("  The strain score should rise measurably (+2–5 pts) during rubbing.")
+    print("  Then rubbing stops and score partially recovers.")
+    print(SEP60 + "\n")
+
+    engine  = StrainFusionEngine()
+    signals = PROFILES["yellow"].copy()
+
+    phases = [
+        ("EYE RUBBING ACTIVE   (rubbing=0.8 injected)",  0.8,  15),
+        ("EYE RUBBING STOPPED  (rubbing=0.0 decay)",     0.0,  15),
+    ]
+
+    try:
+        for label, rub_val, duration in phases:
+            bar52 = "\u2500" * 52
+            print("\n  Phase: " + label)
+            print("  " + bar52)
+            start = time.time()
+
+            while time.time() - start < duration:
+                signals["eye_rubbing"] = rub_val
+
+                score, zone, _ = engine.compute_and_print(
+                    signals,
+                    extra=(
+                        "[SIM-RUBEYE]  eye_rubbing="
+                        + str(round(rub_val, 2))
+                    ),
+                )
+                time.sleep(0.5)
+
+            print("  \u2514─ Phase complete. Score reached: measured above.")
+
+    except KeyboardInterrupt:
+        print("\n  [SIM] Stopped by user.\n")
+        return
+
+    print("\n  [OK] Eye rubbing injection test complete.")
+    print("  With rubbing=0.8 × weight 0.03 = +2.4 raw strain contribution.")
+    print("  Baseline amplification may double this at higher scores.\n")
+
+
 def interactive_menu():
     print("\n" + SEP60)
-    print("  GazeAware -- Strain Zone Simulator  (Phase 1 + 1.1 + 1.2)")
+    print("  GazeAware -- Strain Zone Simulator  (Phase 1 + 1.1 + 1.2 + 2.1)")
     print(SEP60)
     print("  Pick a mode to simulate:\n")
     print("  --- Phase 1 Zones -------------------------------------------")
@@ -439,6 +499,8 @@ def interactive_menu():
     print("  8  -> DISTANCE DRIFT     (posture drift warning + critical zone)")
     print("  --- Phase 1.2 Ghost Overlay ------------------------------------")
     print("  9  -> OVERLAY TEST       (Vitality Ring + Forced Recovery demo)")
+    print("  --- Phase 2.1 New Signals -------------------------------------")
+    print("  10 -> EYE RUBBING        (inject rubbing=0.8 for 15s, verify strain rises)")
     print("\n  Enter number (or Ctrl+C to quit): ", end="")
 
     try:
@@ -504,6 +566,8 @@ def interactive_menu():
         simulate_distance_drift()
     elif choice == "9":
         simulate_overlay()
+    elif choice == "10":
+        simulate_eye_rubbing()
     else:
         print("  Invalid choice.")
 

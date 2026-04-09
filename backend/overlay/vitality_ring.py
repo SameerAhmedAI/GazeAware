@@ -44,6 +44,10 @@ NORMAL_ALPHA  = 0.10       # 10 % opacity — "ghost" state
 HOVER_ALPHA   = 0.80       # 80 % on mouse-enter so it's readable on demand
 FADE_STEP     = 0.04       # alpha change per tick when fading
 
+# ── Crash Predictor amber warning pulse ───────────────────────────────────────
+AMBER_WARNING_COLOUR = "#ff8c00"   # distinct amber — different from RED zone
+AMBER_WARN_ALPHA     = 0.55        # more visible than ghost state during warning
+
 # ── Pulse animation ───────────────────────────────────────────────────────────
 PULSE_INTERVAL_MS = 50     # redraw tick (20 fps is plenty for a subtle pulse)
 
@@ -67,6 +71,9 @@ class VitalityRing:
         self._root: tk.Tk | None = None
         self._canvas: tk.Canvas | None = None
         self._thread: threading.Thread | None = None
+        # Amber crash warning state
+        self._amber_warning_active: bool  = False
+        self._amber_warning_until: float  = 0.0   # epoch seconds when warning expires
 
     # ── Public API ────────────────────────────────────────────────────────────
     def start(self) -> None:
@@ -98,6 +105,30 @@ class VitalityRing:
             try:
                 target = NORMAL_ALPHA if visible else 0.0
                 self._root.after(0, lambda: self._set_alpha(target))
+            except Exception:
+                pass
+
+    def pulse_amber_warning(self, duration_seconds: float = 8.0) -> None:
+        """
+        Temporarily pulse the ring in amber to warn of an imminent cognitive crash.
+        Distinct from the normal RED zone colour.
+
+        The ring will display amber for `duration_seconds` seconds, then return
+        to its normal zone-based colour. Does NOT trigger forced recovery overlay.
+
+        Thread-safe — safe to call from the main monitoring thread.
+
+        Args:
+            duration_seconds: How long to hold the amber warning pulse.
+        """
+        import time as _time
+        with self._lock:
+            self._amber_warning_active = True
+            self._amber_warning_until  = _time.time() + duration_seconds
+        # Briefly boost opacity so the amber warning is visible
+        if self._root:
+            try:
+                self._root.after(0, lambda: self._fade_to(AMBER_WARN_ALPHA))
             except Exception:
                 pass
 
@@ -175,11 +206,20 @@ class VitalityRing:
         self._pulse_phase = (self._pulse_phase + 0.12) % (2 * math.pi)
 
         # ── Read latest data (thread-safe) ────────────────────────────────────
+        import time as _time
         with self._lock:
             score = self._score
             zone  = self._zone
+            # Check amber warning expiry
+            if self._amber_warning_active and _time.time() > self._amber_warning_until:
+                self._amber_warning_active = False
+                # Fade back to normal
+                self._root.after(0, lambda: self._fade_to(NORMAL_ALPHA))
+            amber_active = self._amber_warning_active
 
-        self._draw(score, zone)
+        # Override zone colour to amber during crash warning
+        effective_zone = "AMBER_WARN" if amber_active else zone
+        self._draw(score, effective_zone)
 
         self._root.after(PULSE_INTERVAL_MS, self._tick)
 
@@ -193,7 +233,11 @@ class VitalityRing:
         x0, y0  = pad, pad
         x1, y1  = size - pad, size - pad
 
-        colour  = ZONE_COLOURS.get(zone, ZONE_COLOURS["GREEN"])
+        # Amber warning overrides the normal zone colour
+        if zone == "AMBER_WARN":
+            colour = AMBER_WARNING_COLOUR
+        else:
+            colour = ZONE_COLOURS.get(zone, ZONE_COLOURS["GREEN"])
         dark_bg = self._darken(colour, 0.15)
 
         # ── Background track (full circle, dimmed colour) ─────────────────────

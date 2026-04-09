@@ -148,3 +148,39 @@ PROCESS_CONTEXT_MAP = {
 }
 
 PROCESS_CONTEXT_DEFAULT = "general computer use"
+
+# ═════════════════════════════════════════════════════════════════════════════
+# PHASE 2.1 — CRASH PREDICTOR + TFSI AUTO-TRIGGER + EYE RUBBING
+# ═════════════════════════════════════════════════════════════════════════════
+
+# ── Cognitive Crash Predictor ─────────────────────────────────────────────────
+# Rolling deque: 90 seconds / 0.5s per tick = 180 entries
+CRASH_PREDICTOR_DEQUE_MAXLEN           = 180    # entries (90 seconds of 500ms ticks)
+CRASH_PREDICTOR_CHECK_INTERVAL_TICKS   = 10     # check prediction every 10th tick (5 seconds)
+CRASH_PREDICTOR_MIN_CONFIDENCE         = 0.6    # minimum R² for prediction to be valid
+CRASH_PREDICTOR_SCORE_THRESHOLD        = 55.0   # current score must exceed this to warn
+CRASH_PREDICTOR_MAX_SECONDS            = 120.0  # only warn if crash predicted within 120s
+CRASH_PREDICTOR_TARGET_SCORE           = 90.0   # score threshold that defines a "crash"
+CRASH_PREDICTOR_MIN_SAMPLES            = 10     # minimum deque entries before prediction
+
+# ── TFSI Auto-Trigger (Tear Film Stability Index) ─────────────────────────────
+# Rolling window: 5 minutes / 0.5s per tick = 600 entries
+TFSI_AUTO_DEQUE_MAXLEN       = 600    # entries (5 minutes of 500ms ticks)
+TFSI_STABILITY_THRESHOLD     = 0.25   # stability below this triggers auto-alert
+TFSI_AUTO_COOLDOWN_SECONDS   = 300    # 5-minute cooldown between auto-triggers
+TFSI_MIN_WINDOW_READINGS     = 60     # minimum deque entries before auto-triggering
+TFSI_AUTO_CHECK_INTERVAL_TICKS = 60   # check auto-trigger every 60th tick (30 seconds)
+# A blink_quality value is considered "partial" (bad) if value >= this threshold
+TFSI_PARTIAL_BLINK_THRESHOLD = 0.5    # blink_quality >= 0.5 counted as partial
+
+# ── Eye Rubbing Detection (MediaPipe Hands) ───────────────────────────────────
+# Face mesh landmarks used to find eye centers
+EYE_RUBBING_LEFT_EYE_LANDMARKS  = [33, 133]   # left eye corner landmarks
+EYE_RUBBING_RIGHT_EYE_LANDMARKS = [362, 263]  # right eye corner landmarks
+# Hand landmark indices
+EYE_RUBBING_WRIST_IDX           = 0           # MediaPipe Hand landmark 0 = wrist
+EYE_RUBBING_FINGERTIP_IDX       = 8           # MediaPipe Hand landmark 8 = index fingertip
+# Detection parameters
+EYE_RUBBING_PROXIMITY_THRESHOLD = 0.08        # normalized distance → rubbing detected
+EYE_RUBBING_COUNTER_MAX         = 10          # counter / this = signal (0.0–1.0)
+EYE_RUBBING_DECAY_PER_TICK      = 0.05        # decay applied each tick when no rubbing
