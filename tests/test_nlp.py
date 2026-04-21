@@ -1,5 +1,9 @@
 """
+<<<<<<< HEAD
 Tests — NLP Engine (Phase 2.2)
+=======
+Tests — NLP Engine (Phase 4)
+>>>>>>> 7a4010777afa07d66ae6ea2298ffa4bfffdf6d90
 These are integration tests — they require ANTHROPIC_API_KEY in environment.
 Run with: pytest tests/test_nlp.py -v
 """

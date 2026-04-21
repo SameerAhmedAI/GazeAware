@@ -184,6 +184,7 @@ EYE_RUBBING_FINGERTIP_IDX       = 8           # MediaPipe Hand landmark 8 = inde
 EYE_RUBBING_PROXIMITY_THRESHOLD = 0.08        # normalized distance → rubbing detected
 EYE_RUBBING_COUNTER_MAX         = 10          # counter / this = signal (0.0–1.0)
 EYE_RUBBING_DECAY_PER_TICK      = 0.05        # decay applied each tick when no rubbing
+<<<<<<< HEAD
 
 # ═════════════════════════════════════════════════════════════════════════════
 # PHASE 2.2 — DIGITAL VISUAL ACUITY TEST + VISION DEGRADATION TRACKING
@@ -248,3 +249,5 @@ DEGRADATION_ACUITY_DROP_PCT: float = 10.0
 # Average strain score that constitutes "consistently elevated" strain —
 # used as the second condition for flagging degradation risk
 DEGRADATION_HIGH_STRAIN_THRESHOLD: float = 60.0
+=======
+>>>>>>> 7a4010777afa07d66ae6ea2298ffa4bfffdf6d90

@@ -1,13 +1,24 @@
 """
+<<<<<<< HEAD
 GazeAware — Phase 2.2 Main Entry Point
+=======
+GazeAware — Phase 2.1 Main Entry Point
+>>>>>>> 7a4010777afa07d66ae6ea2298ffa4bfffdf6d90
 ═══════════════════════════════════════
 Starts the webcam, builds personal baseline, monitors all 9 signals,
 fuses them into a live strain score, fires prescriptions when needed,
 and verifies recovery — all printed to terminal.
 
+<<<<<<< HEAD
 New in Phase 2.2:
     – Digital Visual Acuity Test ('A' key)
     – Vision Degradation Tracking (longitudinal, SQLite)
+=======
+New in Phase 2.1:
+    – Cognitive Crash Predictor (linear trend extrapolation)
+    – TFSI Auto-Trigger (tear film auto-alert every 5 min)
+    – Eye Rubbing Detection (MediaPipe Hands real implementation)
+>>>>>>> 7a4010777afa07d66ae6ea2298ffa4bfffdf6d90
 
 Run:
     .venv\\Scripts\\python.exe backend/main.py
@@ -18,7 +29,10 @@ Controls:
     B     → Force new baseline calibration (ignores saved baseline)
     Space → Manually trigger a prescription (for testing)
     T     → Manually trigger the TFSI Dry-Eye Alert banner
+<<<<<<< HEAD
     A     → Run Digital Visual Acuity Test (Snellen chart)
+=======
+>>>>>>> 7a4010777afa07d66ae6ea2298ffa4bfffdf6d90
 """
 
 import sys
@@ -76,8 +90,11 @@ from backend.overlay.manager import OverlayManager
 from backend.tearfilm.tear_film_index import TearFilmIndex
 # ── Phase 2.1: TFSI Auto-Trigger model ────────────────────────────────────────
 from backend.signals.tfsi_model import TFSIModel
+<<<<<<< HEAD
 # ── Phase 2.2: Digital Visual Acuity Test ───────────────────────────────────────
 from backend.vision_acuity.acuity_test import AcuityTest
+=======
+>>>>>>> 7a4010777afa07d66ae6ea2298ffa4bfffdf6d90
 
 
 # ── MediaPipe eye landmark indices (for blink detection) ──────────────────────
@@ -153,9 +170,15 @@ def log_signals(session_id: int, signals: dict, score: float, extras: dict | Non
 # ══════════════════════════════════════════════════════════════════════════════
 def print_banner():
     print("\n" + "═" * 60)
+<<<<<<< HEAD
     print("  GazeAware  |  Phase 2.2  |  Visual Acuity + Degradation Tracking")
     print("═" * 60)
     print("  Controls:  Q=Quit  S=Snapshot  B=New baseline  T=TFSI  Space=Rx  A=Acuity")
+=======
+    print("  GazeAware  |  Phase 2.1  |  Crash Predictor + TFSI Auto + Eye Rubbing")
+    print("═" * 60)
+    print("  Controls:  Q=Quit  S=Snapshot  B=New baseline  T=TFSI alert  Space=Test Rx")
+>>>>>>> 7a4010777afa07d66ae6ea2298ffa4bfffdf6d90
     print("  Overlays:  Vitality Ring (corner HUD) ┊ Forced Recovery at 90+")
     print("─" * 60 + "\n")
 
@@ -506,6 +529,7 @@ def main():
             print(f"\n  [TEST] Manually triggering prescription at score {current_score:.0f}")
             rx_engine._red_zone_since = time.time() - 11.0  # Skip the hold gate
             rx_engine._last_prescription_time = 0.0          # Skip cooldown
+<<<<<<< HEAD
         elif key in (ord('a'), ord('A')):
             # ── Phase 2.2: Digital Visual Acuity Test ───────────────────────────
             print("\n  [Acuity] Starting Visual Acuity Test — follow on-screen instructions\n")
@@ -522,6 +546,8 @@ def main():
                           f"cheat={int(cheat)}  squint={int(squint)}")
             except Exception as _acuity_exc:
                 print(f"  [Acuity] Warning: test failed — {_acuity_exc}")
+=======
+>>>>>>> 7a4010777afa07d66ae6ea2298ffa4bfffdf6d90
 
     # ══════════════════════════════════════════════════════════════════════════
     # Cleanup

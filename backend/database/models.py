@@ -72,6 +72,7 @@ class WeeklyReport(Base):
     avg_daily_strain = Column(Float)
     total_prescriptions = Column(Integer)
     habit_recommendation = Column(String)
+<<<<<<< HEAD
 
 
 class AcuityLog(Base):
@@ -86,3 +87,5 @@ class AcuityLog(Base):
     cheat_detected   = Column(Integer, default=0)       # 0 or 1
     squint_detected  = Column(Integer, default=0)       # 0 or 1
     session_id       = Column(Integer, ForeignKey("sessions.id"), nullable=True)
+=======
+>>>>>>> 7a4010777afa07d66ae6ea2298ffa4bfffdf6d90

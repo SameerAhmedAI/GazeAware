@@ -3,7 +3,11 @@
 > **AI-powered passive eye strain monitor** — webcam only, fully local, zero wearables.
 
 **Authors:** Sameer Ahmed & Muhammad Ahmed Rayyan | **Institution:** SZABIST, Karachi  
+<<<<<<< HEAD
 **Status:** Phase 2.2 Complete (Digital Visual Acuity Test, Vision Degradation Tracking, Ghost Overlay, Forced Recovery, TFSI / Dry-Eye prediction)  
+=======
+**Status:** Phase 1.2 Complete (Ghost Overlay, Forced Recovery, TFSI / Dry-Eye prediction added)  
+>>>>>>> 7a4010777afa07d66ae6ea2298ffa4bfffdf6d90
 **Python:** 3.11+ | **mediapipe:** 0.10.14 | **opencv:** 4.13.0  
 
 ---
@@ -21,8 +25,11 @@ It tracks **11 simultaneous eye, environmental, and behavioral signals**, fuses 
 - Ambient Lighting Analyzer (Face bounding box extraction to detect backlit, underlit, or uneven conditions)
 - Squint Detection & Gaze Entropy
 - Posture Lean & Eye Rubbing
+<<<<<<< HEAD
 - **Digital Visual Acuity Test**: On-demand Snellen charting mapped directly via webcam.
 - **Vision Degradation Tracker**: SQLite-based historical aggregator for tracking declining trends.
+=======
+>>>>>>> 7a4010777afa07d66ae6ea2298ffa4bfffdf6d90
 
 ---
 
@@ -64,7 +71,10 @@ When the camera window opens, you can trigger specific events by pressing keys *
 | `B` | Force a 60-second fresh baseline calibration |
 | `Space` | Instantly trigger a prescription (skip the 10-second warning gate) |
 | `T` | Trigger the Tear-Film Stability Index (TFSI) dry-eye warning banner |
+<<<<<<< HEAD
 | `A` | Trigger Digital Visual Acuity Test (Snellen chart) right inside OpenCV |
+=======
+>>>>>>> 7a4010777afa07d66ae6ea2298ffa4bfffdf6d90
 
 ---
 
@@ -90,10 +100,13 @@ When the camera window opens, you can trigger specific events by pressing keys *
 - **Forced Recovery**: Push your strain score past **90/100** (stare without blinking at a close distance). A full-screen dark overlay will fade in, forcing you to follow a moving blue ball to relax your eye muscles for 20 seconds. (Press `Esc` twice to bypass).
 - **TFSI / Dry-Eye Alert**: Wait for your blink quality ratio to decay significantly, or test it explicitly by pressing `T`. A medical banner will smoothly fade in from the top of the monitor, warning you of critically unstable tear film and holding for 10 seconds.
 
+<<<<<<< HEAD
 ### 👁️ Test Digital Visual Acuity + Degradation (Phase 2.2)
 - **Active Test**: While the webcam is open, press `A`. A pre-test distance gate will prompt you to sit at a healthy distance (50-70cm), then begin randomizing Snellen rows.
 - **Degradation tracking**: After a few weeks of tests (or by inserting seeded mock data), you can run `backend/vision_acuity/degradation_tracker.py` from the terminal to see your visual health degradation tracked against corresponding eyestrain scores.
 
+=======
+>>>>>>> 7a4010777afa07d66ae6ea2298ffa4bfffdf6d90
 ---
 
 ## Testing Without a Webcam (Headless Simulator)
