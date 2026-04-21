@@ -314,7 +314,7 @@ Gate conditions: **10 continuous seconds in RED zone** + **120-second cooldown**
 | `EYE_RUBBING_PROXIMITY_THRESHOLD` | 0.08 | Normalised distance threshold for detection |
 | `EYE_RUBBING_COUNTER_MAX` | 10 | counter/max = signal 0.0–1.0 |
 | `EYE_RUBBING_DECAY_PER_TICK` | 0.05 | Signal decay per tick without rubbing |
-<<<<<<< HEAD
+
 
 ---
 
@@ -395,5 +395,3 @@ A    # → launches Visual Acuity Test in a new OpenCV window
 
 *Last updated: Phase 2.2 completion (Digital Visual Acuity Test + Vision Degradation Tracking)*
 
-=======
->>>>>>> 7a4010777afa07d66ae6ea2298ffa4bfffdf6d90
