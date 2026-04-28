@@ -394,3 +394,68 @@ A    # → launches Visual Acuity Test in a new OpenCV window
 
 *Last updated: Phase 2.2 completion (Digital Visual Acuity Test + Vision Degradation Tracking)*
 
+---
+
+### ✅ Phase 2.4 — FastAPI Backend Layer (Complete)
+
+**Files created/modified in Phase 2.4:**
+
+| File | What changed |
+|------|-------------|
+| `backend/api/__init__.py` | **NEW** — Empty package init, makes `backend.api` a Python package |
+| `backend/api/shared_state.py` | **NEW** — Module-level `state` dict; in-memory bridge between `main.py` writes and FastAPI reads. No locks needed — GIL-safe single-process dict access. |
+| `backend/api/server.py` | **NEW** — Full FastAPI app: 7 REST endpoints, 2 WebSocket broadcast endpoints (`/ws/strain`, `/ws/signals`), CORS wildcard, DB access via `SessionLocal`. Importable as `from backend.api.server import app`. |
+| `backend/main.py` | **UPDATED** — Added Phase 2.4 imports; `_start_api_server()` function; `session_start_time` var; `_api_last_prediction` + `_api_last_rx_text` helpers; daemon thread launch before webcam loop; `_state.state.update(...)` block inside 500 ms tick. |
+| `requirements.txt` | **UPDATED** — Added `fastapi>=0.111.0`, `uvicorn>=0.29.0`, `websockets>=12.0` |
+
+**REST Endpoints:**
+
+| Method | Path | Returns |
+|--------|------|---------|
+| GET | `/health` | `{"status": "ok", "phase": "2.4"}` |
+| GET | `/session` | `session_id`, `session_start`, `baseline_complete` from shared state |
+| GET | `/snapshot` | Full `shared_state.state` dict as JSON |
+| GET | `/history/prescriptions` | Last 50 rows from `prescriptions` table, newest first |
+| GET | `/history/signals` | Last 500 rows from `signal_logs` table, newest first |
+| GET | `/history/acuity` | All rows from `acuity_logs` table, newest first |
+| GET | `/report/degradation` | Result of `get_degradation_report()` from `degradation_tracker` |
+| GET | `/report/weekly` | Last 4 rows from `weekly_reports` table |
+
+**WebSocket Endpoints (broadcast every 500 ms):**
+
+| Path | Payload keys |
+|------|-------------|
+| `/ws/strain` | `strain_score`, `zone`, `tick`, `crash_prediction`, `active_prescription`, `tfsi_stability` |
+| `/ws/signals` | All 9 signal values + `lighting_score`, `distance_drift_cm`, `modifiers` |
+
+**Run command (unchanged — API starts automatically):**
+```powershell
+.venv\Scripts\python.exe backend/main.py
+# FastAPI auto-starts on http://127.0.0.1:8000
+# Interactive docs: http://127.0.0.1:8000/docs
+```
+
+**Install new dependencies (first run only):**
+```powershell
+.venv\Scripts\pip install fastapi>=0.111.0 uvicorn>=0.29.0 websockets>=12.0
+```
+
+**Architecture rules introduced in Phase 2.4:**
+- `shared_state.py` is a plain module dict — no classes, no locks. The GIL protects concurrent access between the main thread (writes) and uvicorn's async event loop (reads).
+- There is exactly **one** `uvicorn.run()` call in the entire codebase (`_start_api_server()`). Do not add another.
+- `multiprocessing` is not used — daemon thread only.
+- `server.py` never imports from `main.py`. Data flows exclusively through `shared_state.state`.
+- All DB sessions in REST endpoints use `try/finally db.close()` — guaranteed close on exception.
+- WebSocket broadcast loops are `asyncio` background tasks. Disconnected clients are removed from the active set; the loop never crashes.
+
+**New package structure added:**
+```
+backend/
+└── api/                    ← NEW Phase 2.4 package
+    ├── __init__.py         ← Empty package marker
+    ├── shared_state.py     ← Module-level state dict (bridge)
+    └── server.py           ← FastAPI app, REST + WebSocket endpoints
+```
+
+*Last updated: Phase 2.4 completion (FastAPI Backend Layer — REST + WebSocket API)*
+

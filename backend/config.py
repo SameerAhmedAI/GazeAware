@@ -184,3 +184,38 @@ EYE_RUBBING_FINGERTIP_IDX       = 8           # MediaPipe Hand landmark 8 = inde
 EYE_RUBBING_PROXIMITY_THRESHOLD = 0.08        # normalized distance → rubbing detected
 EYE_RUBBING_COUNTER_MAX         = 10          # counter / this = signal (0.0–1.0)
 EYE_RUBBING_DECAY_PER_TICK      = 0.05        # decay applied each tick when no rubbing
+
+# ═════════════════════════════════════════════════════════════════════════════
+# PHASE 2.2 — DIGITAL VISUAL ACUITY TEST + VISION DEGRADATION TRACKING
+# ═════════════════════════════════════════════════════════════════════════════
+
+# ── Snellen Chart Rows (row_num, fraction_string, font_pt_size) ───────────────
+# Row 1 = largest (20/200), row 8 = smallest (20/20)
+SNELLEN_ROWS = [
+    (1, "20/200", 72),
+    (2, "20/100", 60),
+    (3, "20/70",  48),
+    (4, "20/50",  36),
+    (5, "20/40",  30),
+    (6, "20/30",  24),
+    (7, "20/25",  20),
+    (8, "20/20",  16),
+]
+
+# ── Standard Snellen-compatible optotype set ──────────────────────────────────
+SNELLEN_OPTOTYPES = "EFPTOZLD"
+
+# ── Acuity Test Parameters ────────────────────────────────────────────────────
+ACUITY_LETTERS_PER_ROW        = 5      # Letters shown per row before scoring
+ACUITY_PASS_THRESHOLD         = 0.60   # ≥60% correct on a row → advance to next
+ACUITY_MIN_DISTANCE_CM        = 50.0   # Minimum valid test distance
+ACUITY_MAX_DISTANCE_CM        = 70.0   # Maximum valid test distance
+ACUITY_CHEAT_LEAN_CM          = 10.0   # Forward lean ≥ this → cheat_detected flag
+ACUITY_SQUINT_EAR_DROP        = 0.08   # EAR drop ≥ this from baseline → squint_detected
+ACUITY_DISTANCE_HOLD_SECONDS  = 2.0    # Must be in valid range for 2s before test starts
+
+# ── Vision Degradation Tracker Parameters ────────────────────────────────────
+DEGRADATION_WEEK_SAMPLE_DAYS      = 7     # Days per weekly bucket
+DEGRADATION_ROLLING_WEEKS         = 4     # Rolling window size for trend detection
+DEGRADATION_ACUITY_DROP_PCT       = 10.0  # % acuity drop threshold to flag risk
+DEGRADATION_HIGH_STRAIN_THRESHOLD = 60.0  # Avg strain that counts as "consistently elevated"

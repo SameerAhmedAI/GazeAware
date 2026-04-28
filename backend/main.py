@@ -79,6 +79,11 @@ from backend.tearfilm.tear_film_index import TearFilmIndex
 # ── Phase 2.1: TFSI Auto-Trigger model ────────────────────────────────────────
 from backend.signals.tfsi_model import TFSIModel
 
+# ── Phase 2.4: FastAPI shared state + server ──────────────────────────────────
+from backend.api import shared_state as _state
+import uvicorn
+from backend.api.server import app as _fastapi_app
+
 
 # ── MediaPipe eye landmark indices (for blink detection) ──────────────────────
 LEFT_EYE_IDX  = [362, 385, 387, 263, 373, 380]
@@ -226,6 +231,13 @@ class WarningSoundManager:
                 pass
         threading.Thread(target=_beep, daemon=True).start()
 
+
+# ══════════════════════════════════════════════════════════════════════════════
+def _start_api_server() -> None:
+    """Run the FastAPI/uvicorn server — called from a daemon thread."""
+    uvicorn.run(_fastapi_app, host="127.0.0.1", port=8000, log_level="error")
+
+
 def main():
     print_banner()
 
@@ -237,6 +249,7 @@ def main():
 
     # ── Create DB session ─────────────────────────────────────────────────────
     session_id = create_session()
+    session_start_time = datetime.now(timezone.utc)   # Phase 2.4: track for API
     print(f"  [DB] Session #{session_id} started\n")
 
     # ── MediaPipe setup ───────────────────────────────────────────────────────
@@ -312,6 +325,10 @@ def main():
     # Phase 2.1: tick counter for interval-based checks
     tick_counter: int = 0
 
+    # Phase 2.4: API state tracking helpers
+    _api_last_prediction = None   # last CrashPrediction dataclass from crash_pred.predict()
+    _api_last_rx_text: str | None = None  # text of most-recently fired prescription
+
     verifier: RecoveryVerifier | None = None
 
     # FPS tracking
@@ -320,6 +337,11 @@ def main():
     prev_time   = time.time()
 
     print("  [Camera] Webcam open — starting monitoring loop...\n")
+
+    # ── Phase 2.4: Start FastAPI server in daemon thread ─────────────────────
+    api_thread = threading.Thread(target=_start_api_server, daemon=True)
+    api_thread.start()
+    print("  [API] FastAPI server starting on http://127.0.0.1:8000\n")
 
     # ══════════════════════════════════════════════════════════════════════════
     while True:
@@ -474,6 +496,7 @@ def main():
                     # Check prediction every CRASH_PREDICTOR_CHECK_INTERVAL_TICKS
                     if tick_counter % CRASH_PREDICTOR_CHECK_INTERVAL_TICKS == 0:
                         prediction = crash_pred.predict()
+                        _api_last_prediction = prediction  # Phase 2.4: expose to API
                         if prediction.will_crash:
                             eta  = int(prediction.seconds_until_crash)
                             conf = int(prediction.confidence * 100)
@@ -489,6 +512,7 @@ def main():
                 if verifier is None or verifier.is_done():
                     rx = rx_engine.update(current_score, current_signals)
                     if rx:
+                        _api_last_rx_text = rx.get("text")  # Phase 2.4: expose to API
                         # Start recovery monitoring
                         verifier = RecoveryVerifier(
                             strain_at_prescription=current_score,
@@ -498,6 +522,29 @@ def main():
                 # ── Recovery verifier ─────────────────────────────────────────
                 if verifier and not verifier.is_done():
                     verifier.update(current_score)
+
+                # ── Phase 2.4: Push current state to FastAPI shared dict ──────
+                _state.state.update({
+                    "strain_score":      current_score,
+                    "zone":              current_zone,
+                    "signals":           current_signals,
+                    "modifiers":         active_modifiers,
+                    "crash_prediction":  (
+                        _api_last_prediction.__dict__
+                        if _api_last_prediction is not None
+                        else _state.state["crash_prediction"]
+                    ),
+                    "tfsi_stability":    tfsi_model.compute_tfsi_stability(),
+                    "tfsi_auto_triggered": False,
+                    "active_prescription": _api_last_rx_text,
+                    "eye_rubbing_signal": current_signals.get("eye_rubbing", 0.0),
+                    "lighting_score":    sig_lighting.lighting_score,
+                    "distance_drift_cm": sig_dist_trend.current_drift_cm,
+                    "session_id":        session_id,
+                    "session_start":     session_start_time.isoformat(),
+                    "baseline_complete": calibrator.is_ready,
+                    "tick_count":        _state.state["tick_count"] + 1,
+                })
 
             else:
                 # No face visible — print a status line
