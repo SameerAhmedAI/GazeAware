@@ -94,6 +94,21 @@ UPDATE_INTERVAL = SIGNAL_UPDATE_INTERVAL_MS / 1000.0   # 0.5 seconds
 
 
 # ══════════════════════════════════════════════════════════════════════════════
+# Fix 2: Event queue helper — push terminal alerts to shared_state for UI
+# ══════════════════════════════════════════════════════════════════════════════
+
+def _push_event(event_type: str, message: str) -> None:
+    """Append an alert event to the shared_state rolling events list (last 20)."""
+    event = {
+        "type":      event_type,
+        "message":   message,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+    _state.state["events"] = (_state.state["events"] + [event])[-20:]
+    _state.state["last_event"] = event
+
+
+# ══════════════════════════════════════════════════════════════════════════════
 def create_session() -> int:
     """Create a new session row in SQLite and return its ID."""
     init_db()
@@ -349,6 +364,13 @@ def main():
         if not ret:
             continue
 
+        # ── Fix 4: Store clean (pre-annotation) downscaled frame for MJPEG API ─
+        try:
+            small_frame = cv2.resize(frame, (480, 360))
+            _state.state["latest_frame"] = small_frame
+        except Exception:
+            pass
+
         h, w = frame.shape[:2]
         now  = time.time()
 
@@ -482,10 +504,9 @@ def main():
                         if tfsi_model.should_auto_trigger():
                             auto_alert = tfsi_model.build_alert_dict()
                             overlays.notify_tfsi_alert(auto_alert)
-                            print(
-                                "\n  👁️  TFSI AUTO-ALERT: Tear film critically unstable — "
-                                "blink fully now\n"
-                            )
+                            msg = "TFSI AUTO-ALERT: Tear film critically unstable — blink fully now"
+                            print(f"\n  👁️  {msg}\n")
+                            _push_event("tfsi", msg)  # Fix 2
                 except Exception:
                     pass  # TFSI model must never crash the loop
 
@@ -500,11 +521,10 @@ def main():
                         if prediction.will_crash:
                             eta  = int(prediction.seconds_until_crash)
                             conf = int(prediction.confidence * 100)
-                            print(
-                                f"\n  ⚠️  COGNITIVE CRASH PREDICTED IN ~{eta}s "
-                                f"(confidence {conf}%) — Consider taking a break now\n"
-                            )
+                            msg = f"COGNITIVE CRASH PREDICTED IN ~{eta}s (confidence {conf}%) — Consider taking a break now"
+                            print(f"\n  ⚠️  {msg}\n")
                             overlays.warn_imminent_crash(seconds=prediction.seconds_until_crash)
+                            _push_event("crash", msg)  # Fix 2
                 except Exception:
                     pass  # Crash predictor must never crash the loop
 
@@ -512,7 +532,9 @@ def main():
                 if verifier is None or verifier.is_done():
                     rx = rx_engine.update(current_score, current_signals)
                     if rx:
-                        _api_last_rx_text = rx.get("text")  # Phase 2.4: expose to API
+                        rx_text = rx.get("text")
+                        _api_last_rx_text = rx_text  # Phase 2.4: expose to API
+                        _push_event("prescription", f"Prescription issued: {rx_text}")  # Fix 2
                         # Start recovery monitoring
                         verifier = RecoveryVerifier(
                             strain_at_prescription=current_score,
@@ -522,6 +544,41 @@ def main():
                 # ── Recovery verifier ─────────────────────────────────────────
                 if verifier and not verifier.is_done():
                     verifier.update(current_score)
+
+                # ── Fix 3: Consume API control flags ──────────────────────────
+                if _state.state.get("trigger_prescription"):
+                    _state.state["trigger_prescription"] = False
+                    print(f"\n  [API] Triggering prescription at score {current_score:.0f}")
+                    rx_engine._red_zone_since = time.time() - 11.0
+                    rx_engine._last_prescription_time = 0.0
+
+                if _state.state.get("trigger_baseline"):
+                    _state.state["trigger_baseline"] = False
+                    print("\n  [API] Forcing fresh baseline calibration...\n")
+                    calibrator = BaselineCalibrator()
+                    calibrator.load_or_start(session_id)
+
+                if _state.state.get("trigger_tfsi"):
+                    _state.state["trigger_tfsi"] = False
+                    print("\n  [API] Triggering TFSI Dry-Eye Alert...\n")
+                    test_result = {
+                        "tfsi_score": 88.5,
+                        "stability_class": "CRITICAL",
+                        "breakdown_rate_pct": 42.0,
+                        "recommendation": "Tear film critically unstable — breaking down 42% faster today. Use lubricating eye drops now.",
+                        "alert_needed": True,
+                    }
+                    overlays.notify_tfsi_alert(test_result)
+                    _push_event("tfsi", "Manual TFSI alert triggered from dashboard")
+
+                if _state.state.get("trigger_acuity"):
+                    _state.state["trigger_acuity"] = False
+                    print("\n  [API] Triggering visual acuity test...\n")
+                    try:
+                        from backend.vision_acuity.acuity_test import AcuityTest
+                        AcuityTest(session_id).run(cap, face_mesh)
+                    except Exception as _acuity_err:
+                        print(f"  [API] Acuity test error: {_acuity_err}")
 
                 # ── Phase 2.4: Push current state to FastAPI shared dict ──────
                 _state.state.update({
@@ -573,7 +630,7 @@ def main():
                 tfsi_stats=tfsi_engine.get_stats(),
             )
         elif key == ord('b'):
-            print("\n  [Baseline] 🔄 Forcing fresh baseline calibration...\n")
+            print("\n  [Baseline] Forcing fresh baseline calibration...\n")
             calibrator = BaselineCalibrator()
             calibrator.load_or_start(session_id)
         elif key in (ord('t'), ord('T')):
@@ -582,10 +639,19 @@ def main():
                 "tfsi_score": 88.5,
                 "stability_class": "CRITICAL",
                 "breakdown_rate_pct": 42.0,
-                "recommendation": "⚠ Tear film critically unstable — breaking down 42% faster today. Use lubricating eye drops now.",
+                "recommendation": "Tear film critically unstable — breaking down 42% faster today. Use lubricating eye drops now.",
                 "alert_needed": True,
             }
             overlays.notify_tfsi_alert(test_result)
+            _push_event("tfsi", "Manual TFSI alert triggered via keyboard")
+        elif key in (ord('a'), ord('A')):
+            # Acuity test — same block as API trigger
+            print("\n  [ACUITY] Launching visual acuity test...\n")
+            try:
+                from backend.vision_acuity.acuity_test import AcuityTest
+                AcuityTest(session_id).run(cap, face_mesh)
+            except Exception as _acuity_err:
+                print(f"  [ACUITY] Test error: {_acuity_err}")
         elif key == ord(' '):
             # Manual prescription trigger for testing
             print(f"\n  [TEST] Manually triggering prescription at score {current_score:.0f}")

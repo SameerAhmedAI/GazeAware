@@ -1,0 +1,139 @@
+@import "tailwindcss";
+
+/* ─────────────────────────────────────────
+   CSS Custom Properties — Design Tokens
+───────────────────────────────────────── */
+:root {
+  /* Backgrounds — layered depth */
+  --bg-void:       #050507;
+  --bg-base:       #09090f;
+  --bg-surface:    #0f0f17;
+  --bg-elevated:   #14141e;
+  --bg-overlay:    #1a1a26;
+
+  /* Borders */
+  --border-subtle:  #1e1e2e;
+  --border-default: #2a2a3d;
+  --border-active:  #3d3d5c;
+
+  /* Text */
+  --text-primary:   #f0f0f8;
+  --text-secondary: #8888aa;
+  --text-muted:     #44445a;
+  --text-disabled:  #2a2a3a;
+
+  /* Accent */
+  --accent:         #e8e8f8;
+  --accent-dim:     #9090b8;
+  --accent-glow:    rgba(232, 232, 248, 0.08);
+
+  /* Strain Zones */
+  --zone-green:           #10b981;
+  --zone-green-bg:        rgba(16, 185, 129, 0.08);
+  --zone-green-border:    rgba(16, 185, 129, 0.25);
+
+  --zone-yellow:          #f59e0b;
+  --zone-yellow-bg:       rgba(245, 158, 11, 0.08);
+  --zone-yellow-border:   rgba(245, 158, 11, 0.25);
+
+  --zone-red:             #ef4444;
+  --zone-red-bg:          rgba(239, 68, 68, 0.08);
+  --zone-red-border:      rgba(239, 68, 68, 0.25);
+
+  --zone-critical:        #dc2626;
+  --zone-critical-bg:     rgba(220, 38, 38, 0.12);
+  --zone-critical-border: rgba(220, 38, 38, 0.4);
+
+  /* Signal bar thresholds */
+  --signal-low:  #10b981;
+  --signal-mid:  #f59e0b;
+  --signal-high: #ef4444;
+}
+
+/* ─────────────────────────────────────────
+   Base Styles
+───────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--bg-void);
+  color: var(--text-primary);
+  font-family: 'DM Sans', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  margin: 0;
+  padding: 0;
+}
+
+/* ─────────────────────────────────────────
+   Keyframe Animations
+───────────────────────────────────────── */
+@keyframes pulse-critical {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+  50%       { box-shadow: 0 0 20px 4px rgba(220, 38, 38, 0.35); }
+}
+
+@keyframes pulse-live {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.4; transform: scale(0.85); }
+}
+
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes scan-line {
+  0%   { transform: translateY(-100%); opacity: 0; }
+  10%  { opacity: 0.6; }
+  90%  { opacity: 0.6; }
+  100% { transform: translateY(100vh); opacity: 0; }
+}
+
+@keyframes number-glow {
+  0%, 100% { text-shadow: 0 0 0px rgba(240,240,248,0); }
+  50%       { text-shadow: 0 0 24px rgba(240,240,248,0.4); }
+}
+
+@keyframes float-orb1 {
+  from { transform: translate(0, 0); }
+  to   { transform: translate(40px, -30px); }
+}
+
+@keyframes float-orb2 {
+  from { transform: translate(0, 0); }
+  to   { transform: translate(-30px, 40px); }
+}
+
+@keyframes bounce-arrow {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(8px); }
+}
+
+/* ─────────────────────────────────────────
+   Scrollbar Styling
+───────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 4px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-void);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-default);
+  border-radius: 2px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--border-active);
+}

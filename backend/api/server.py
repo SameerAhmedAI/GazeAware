@@ -1,8 +1,8 @@
 """
-GazeAware — Phase 2.4: FastAPI Server
+GazeAware — Phase 2.4+: FastAPI Server
 ======================================
-Exposes the real-time strain state, historical DB records, and two WebSocket
-streams to the React dashboard (or any HTTP client) running on localhost.
+Exposes the real-time strain state, historical DB records, camera feed, and
+WebSocket streams to the React dashboard running on localhost.
 
 Architecture rules:
 - Never import anything from backend.main — data flows through shared_state only.
@@ -17,10 +17,13 @@ CORS is wide-open (*) for development; restrict origins before production deploy
 
 import asyncio
 import copy
+from datetime import datetime, timezone
 from typing import Any
 
+import cv2
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 
 # ── Shared state bridge (written by main.py, read here) ──────────────────────
 from backend.api import shared_state as _state
@@ -39,8 +42,8 @@ from backend.vision_acuity.degradation_tracker import get_degradation_report
 # ── App setup ─────────────────────────────────────────────────────────────────
 app = FastAPI(
     title="GazeAware API",
-    description="Real-time eye strain monitoring REST + WebSocket API (Phase 2.4)",
-    version="2.4.0",
+    description="Real-time eye strain monitoring REST + WebSocket API (Phase 2.4+)",
+    version="2.5.0",
 )
 
 app.add_middleware(
@@ -74,7 +77,7 @@ def _row_to_dict(row: Any) -> dict:
 @app.get("/health")
 async def health() -> dict:
     """Liveness probe — confirms the API server is reachable."""
-    return {"status": "ok", "phase": "2.4"}
+    return {"status": "ok", "phase": "2.5"}
 
 
 @app.get("/session")
@@ -90,9 +93,10 @@ async def session_info() -> dict:
 
 @app.get("/snapshot")
 async def snapshot() -> dict:
-    """Return a full copy of the current shared state as JSON."""
-    # Return a shallow copy so the dict doesn't change mid-serialisation
-    return copy.copy(_state.state)
+    """Return a full copy of the current shared state as JSON (frames excluded)."""
+    s = copy.copy(_state.state)
+    s.pop("latest_frame", None)   # numpy arrays are not JSON-serialisable
+    return s
 
 
 @app.get("/history/prescriptions")
@@ -136,7 +140,6 @@ async def history_acuity() -> list:
     """All acuity log rows, newest first."""
     db = SessionLocal()
     try:
-        # AcuityLog is created dynamically; use raw SQL to avoid import issues
         from sqlalchemy import text
         rows = db.execute(
             text(
@@ -161,7 +164,6 @@ async def report_degradation() -> dict:
     """Vision degradation analysis from degradation_tracker."""
     try:
         report = get_degradation_report()
-        # Convert any datetime objects inside weekly_data to strings
         for week in report.get("weekly_data", []):
             for k, v in week.items():
                 if hasattr(v, "isoformat"):
@@ -190,7 +192,70 @@ async def report_weekly() -> list:
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# WebSocket — /ws/strain
+# Fix 3: Control endpoints — set flags consumed by main.py on the next tick
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@app.post("/controls/prescription")
+async def control_prescription() -> dict:
+    """Trigger a manual prescription (same as Space key)."""
+    _state.state["trigger_prescription"] = True
+    return {"status": "triggered", "control": "prescription"}
+
+
+@app.post("/controls/baseline")
+async def control_baseline() -> dict:
+    """Force a new baseline calibration (same as B key)."""
+    _state.state["trigger_baseline"] = True
+    return {"status": "triggered", "control": "baseline"}
+
+
+@app.post("/controls/tfsi")
+async def control_tfsi() -> dict:
+    """Trigger a TFSI dry-eye alert (same as T key)."""
+    _state.state["trigger_tfsi"] = True
+    return {"status": "triggered", "control": "tfsi"}
+
+
+@app.post("/controls/acuity")
+async def control_acuity() -> dict:
+    """Trigger the visual acuity test (same as A key)."""
+    _state.state["trigger_acuity"] = True
+    return {"status": "triggered", "control": "acuity"}
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Fix 4: MJPEG camera feed endpoint
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@app.get("/video_feed")
+async def video_feed():
+    """Stream the live camera feed as multipart MJPEG at ~10 FPS."""
+    async def frame_generator():
+        while True:
+            frame = _state.state.get("latest_frame")
+            if frame is not None:
+                try:
+                    _, buffer = cv2.imencode(
+                        ".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 60]
+                    )
+                    yield (
+                        b"--frame\r\n"
+                        b"Content-Type: image/jpeg\r\n\r\n"
+                        + buffer.tobytes()
+                        + b"\r\n"
+                    )
+                except Exception:
+                    pass
+            await asyncio.sleep(0.1)   # 10 FPS is sufficient for display
+
+    return StreamingResponse(
+        frame_generator(),
+        media_type="multipart/x-mixed-replace; boundary=frame",
+    )
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# WebSocket — /ws/strain  (Fix 1: global declarations to avoid scoping bug)
 # ═══════════════════════════════════════════════════════════════════════════════
 
 _strain_clients: set[WebSocket] = set()
@@ -198,6 +263,7 @@ _strain_clients: set[WebSocket] = set()
 
 async def _broadcast_strain():
     """Background task: push strain summary to all /ws/strain clients every 500ms."""
+    global _strain_clients   # Fix 1: explicit global reference
     while True:
         await asyncio.sleep(0.5)
         if not _strain_clients:
@@ -215,6 +281,9 @@ async def _broadcast_strain():
             }),
             "active_prescription": s.get("active_prescription"),
             "tfsi_stability":    s.get("tfsi_stability", 1.0),
+            # Fix 2: include events in strain broadcast
+            "events":            s.get("events", []),
+            "last_event":        s.get("last_event"),
         }
 
         disconnected: set[WebSocket] = set()
@@ -237,10 +306,10 @@ async def _start_strain_broadcaster():
 @app.websocket("/ws/strain")
 async def ws_strain(websocket: WebSocket):
     """WebSocket endpoint that streams strain score updates every 500ms."""
+    global _strain_clients   # Fix 1
     await websocket.accept()
     _strain_clients.add(websocket)
     try:
-        # Keep the connection alive; broadcasts happen in the background task
         while True:
             await websocket.receive_text()   # blocks until client sends or disconnects
     except WebSocketDisconnect:
@@ -250,7 +319,7 @@ async def ws_strain(websocket: WebSocket):
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# WebSocket — /ws/signals
+# WebSocket — /ws/signals  (Fix 1: global declarations to avoid scoping bug)
 # ═══════════════════════════════════════════════════════════════════════════════
 
 _signal_clients: set[WebSocket] = set()
@@ -258,6 +327,7 @@ _signal_clients: set[WebSocket] = set()
 
 async def _broadcast_signals():
     """Background task: push full signal values to all /ws/signals clients every 500ms."""
+    global _signal_clients   # Fix 1: explicit global reference
     while True:
         await asyncio.sleep(0.5)
         if not _signal_clients:
@@ -300,6 +370,7 @@ async def _start_signals_broadcaster():
 @app.websocket("/ws/signals")
 async def ws_signals(websocket: WebSocket):
     """WebSocket endpoint that streams all signal values every 500ms."""
+    global _signal_clients   # Fix 1
     await websocket.accept()
     _signal_clients.add(websocket)
     try:

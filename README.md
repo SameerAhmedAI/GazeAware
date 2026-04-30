@@ -2,8 +2,8 @@
 
 > **AI-powered passive eye strain monitor** — webcam only, fully local, zero wearables.
 
-**Authors:** Sameer Ahmed & Muhammad Ahmed Rayyan | **Institution:** SZABIST, Karachi  
-**Status:** Phase 2.4 Complete (FastAPI Backend Layer, REST & WebSocket Endpoints)  
+**Authors:** Sameer Ahmed, Muhammad Ahmed Rayyan, Umul Baneen, Mohan Singh, Basit | **Institution:** SZABIST, Karachi  
+**Status:** Phase 3 Complete (React Frontend Dark UI, Live Dashboard, History, Acuity & Weekly Reports)  
 **Python:** 3.11+ | **mediapipe:** 0.10.14 | **opencv:** 4.13.0  
 
 ---

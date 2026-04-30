@@ -72,3 +72,24 @@ class WeeklyReport(Base):
     avg_daily_strain = Column(Float)
     total_prescriptions = Column(Integer)
     habit_recommendation = Column(String)
+
+
+# ── Phase 2.2: Visual acuity log ──────────────────────────────────────────────
+from sqlalchemy import Boolean  # noqa: E402 — late import avoids circular issues
+
+class AcuityLog(Base):
+    """Records the result of each digital Snellen acuity test."""
+    __tablename__ = "acuity_logs"
+
+    id                  = Column(Integer, primary_key=True)
+    session_id          = Column(Integer, ForeignKey("sessions.id"), nullable=True)
+    timestamp           = Column(DateTime(timezone=True), default=_utcnow)
+    snellen_fraction    = Column(String, nullable=True)    # e.g. "20/30"
+    last_row_passed     = Column(Integer, nullable=True)   # 1–8 row number
+    snellen_numerator   = Column(Integer, default=20)
+    snellen_denominator = Column(Integer, default=20)
+    distance_cm         = Column(Float, nullable=True)     # mean face distance during test
+    cheat_detected      = Column(Boolean, default=False)
+    squint_detected     = Column(Boolean, default=False)
+    score_numeric       = Column(Float, nullable=True)     # numeric 0.0–1.0 mapping
+

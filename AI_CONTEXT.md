@@ -459,3 +459,64 @@ backend/
 
 *Last updated: Phase 2.4 completion (FastAPI Backend Layer — REST + WebSocket API)*
 
+
+---
+
+### ✅ Phase 3 — React Frontend Dark UI, Live Dashboard, History, Acuity & Weekly Reports (Complete)
+
+**Files created/modified in Phase 3:**
+
+| File | What changed |
+|------|-------------|
+| `frontend/` | Complete scaffolding of a Vite + React + Tailwind (custom dark UI) application |
+| `backend/api/shared_state.py` | Added `"events"`, `"last_event"`, `"latest_frame"`, `"trigger_prescription"`, `"trigger_baseline"`, `"trigger_tfsi"`, `"trigger_acuity"` keys |
+| `backend/api/server.py` | Fix 1: added `global _strain_clients / _signal_clients` in broadcast functions. Fix 2: events included in `/ws/strain` payload. Fix 3: 4 new POST `/controls/*` endpoints. Fix 4: MJPEG `/video_feed` streaming endpoint. |
+| `backend/main.py` | Added `_push_event()` helper. Store 480×360 pre-annotation frame in `shared_state["latest_frame"]` each tick. Consume control trigger flags (`trigger_prescription`, `trigger_baseline`, `trigger_tfsi`, `trigger_acuity`) inside 500ms tick. Push events to queue for TFSI auto-alert, crash predictor, and prescription events. Fixed A/a keypress (was missing from keyhandler). |
+| `backend/database/models.py` | Added `AcuityLog` SQLAlchemy model — `init_db()` now auto-creates the `acuity_logs` table if missing. |
+| `frontend/vite.config.js` | Added `/controls`, `/video_feed` REST proxies; fixed `/ws` proxy with `rewriteWsOrigin: true`. |
+| `frontend/src/services/api.js` | Switched from absolute `http://localhost:8000` to relative URLs (Vite proxy). Added `triggerPrescription`, `triggerBaseline`, `triggerTfsi`, `triggerAcuity` POST helpers. |
+| `frontend/src/hooks/useGazeSocket.js` | Refactored to accept `path` ('strain'|'signals') instead of full URL. Constructs `ws://host/ws/{path}` dynamically. |
+| `frontend/src/components/CameraFeed.jsx` | **NEW** — MJPEG `<img src="/video_feed">` with offline fallback. |
+| `frontend/src/components/EventsFeed.jsx` | **NEW** — Scrollable events log with type-coloured icons and relative timestamps. |
+| `frontend/src/components/` | Modular UI components: StatCards, and Controls |
+| `frontend/src/pages/Dashboard.jsx` | Live strain monitoring, zone classification, camera feed, and live events. Updated WS hook calls to path-based. Added Controls card with 4 flash-state buttons. |
+| `frontend/src/pages/History.jsx` | Sessions and Signals data tables with sorting and offline support |
+| `frontend/src/pages/Report.jsx` | Weekly reports interface using Groq NLP recommendations |
+| `frontend/src/pages/Acuity.jsx` | Digital Visual Acuity interface with automated Snellen test triggers |
+
+**New REST Endpoints (Phase 3):**
+
+| Method | Path | Returns |
+|--------|------|---------|
+| POST | `/controls/prescription` | `{"status":"triggered","control":"prescription"}` |
+| POST | `/controls/baseline` | `{"status":"triggered","control":"baseline"}` |
+| POST | `/controls/tfsi` | `{"status":"triggered","control":"tfsi"}` |
+| POST | `/controls/acuity` | `{"status":"triggered","control":"acuity"}` |
+| GET | `/video_feed` | MJPEG multipart stream at 10 FPS |
+
+**Updated `/ws/strain` payload (now includes):**
+```json
+{
+  "strain_score": 0.0,
+  "zone": "GREEN",
+  "tick": 0,
+  "crash_prediction": {...},
+  "active_prescription": null,
+  "tfsi_stability": 1.0,
+  "events": [...],
+  "last_event": null
+}
+```
+
+**New shared_state keys:**
+```python
+"events":               [],     # rolling list of last 20 alert events
+"last_event":           None,   # most recent event (type, message, timestamp)
+"latest_frame":         None,   # numpy array 480×360, pre-annotation
+"trigger_prescription": False,  # set by API, consumed in 500ms tick
+"trigger_baseline":     False,
+"trigger_tfsi":         False,
+"trigger_acuity":       False,
+```
+
+*Last updated: Phase 3 completion (React Frontend Dark UI, Live Dashboard, History, Acuity & Weekly Reports)*

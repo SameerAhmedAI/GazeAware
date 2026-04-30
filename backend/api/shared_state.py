@@ -1,6 +1,6 @@
 """
-GazeAware — Phase 2.4: Shared State Bridge
-==========================================
+GazeAware — Phase 2.4+: Shared State Bridge
+============================================
 A single module-level dict that acts as the in-memory bridge between
 the main webcam loop (backend/main.py) and the FastAPI server
 (backend/api/server.py).
@@ -32,4 +32,14 @@ state: dict = {
     "session_start":        None,
     "baseline_complete":    False,
     "tick_count":           0,
+    # ── Phase 2.5: events queue ──────────────────────────────────────────────
+    "events":               [],     # rolling list of last 20 alert events
+    "last_event":           None,   # most recent event for quick access
+    # ── Phase 2.5: latest camera frame (numpy array, updated each tick) ─────
+    "latest_frame":         None,
+    # ── Phase 2.5: control flags (set by API, consumed by main.py tick) ──────
+    "trigger_prescription": False,
+    "trigger_baseline":     False,
+    "trigger_tfsi":         False,
+    "trigger_acuity":       False,
 }
