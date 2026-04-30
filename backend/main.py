@@ -499,6 +499,8 @@ def main():
                 # ── Phase 2.1: Feed TFSI Auto-Trigger model ────────────────────
                 try:
                     tfsi_model.feed(current_signals.get("blink_quality", 0.0))
+                    # Fix 4: store sample count every tick
+                    _state.state["tfsi_sample_count"] = len(tfsi_model._window)
                     # Check auto-trigger every 60th tick (30 seconds)
                     if tick_counter % TFSI_AUTO_CHECK_INTERVAL_TICKS == 0:
                         if tfsi_model.should_auto_trigger():
@@ -525,6 +527,8 @@ def main():
                             print(f"\n  ⚠️  {msg}\n")
                             overlays.warn_imminent_crash(seconds=prediction.seconds_until_crash)
                             _push_event("crash", msg)  # Fix 2
+                    # Fix 4: store slope every tick (not just on check interval)
+                    _state.state["trend_slope"] = crash_pred.last_slope
                 except Exception:
                     pass  # Crash predictor must never crash the loop
 
@@ -533,8 +537,10 @@ def main():
                     rx = rx_engine.update(current_score, current_signals)
                     if rx:
                         rx_text = rx.get("text")
-                        _api_last_rx_text = rx_text  # Phase 2.4: expose to API
-                        _push_event("prescription", f"Prescription issued: {rx_text}")  # Fix 2
+                        _api_last_rx_text = rx_text          # Phase 2.4: expose to API
+                        _state.state["active_prescription"] = rx_text   # Fix 1B: update live
+                        _state.state["prescription_timestamp"] = datetime.now(timezone.utc).isoformat()  # Fix 2
+                        _push_event("prescription", f"Prescription issued: {rx_text}")
                         # Start recovery monitoring
                         verifier = RecoveryVerifier(
                             strain_at_prescription=current_score,
@@ -548,9 +554,18 @@ def main():
                 # ── Fix 3: Consume API control flags ──────────────────────────
                 if _state.state.get("trigger_prescription"):
                     _state.state["trigger_prescription"] = False
-                    print(f"\n  [API] Triggering prescription at score {current_score:.0f}")
-                    rx_engine._red_zone_since = time.time() - 11.0
-                    rx_engine._last_prescription_time = 0.0
+                    print(f"\n  [API] Force-triggering prescription at score {current_score:.0f}")
+                    forced_rx = rx_engine.force_prescribe(current_score, current_signals)
+                    forced_rx_text = forced_rx.get("text", "")
+                    _api_last_rx_text = forced_rx_text
+                    _state.state["active_prescription"] = forced_rx_text   # Fix 1B
+                    _state.state["prescription_timestamp"] = datetime.now(timezone.utc).isoformat()  # Fix 2
+                    _push_event("prescription", f"Force-triggered: {forced_rx_text}")
+                    if verifier is None or verifier.is_done():
+                        verifier = RecoveryVerifier(
+                            strain_at_prescription=current_score,
+                            prescription_db_id=rx_engine.last_prescription_db_id,
+                        )
 
                 if _state.state.get("trigger_baseline"):
                     _state.state["trigger_baseline"] = False
@@ -593,6 +608,8 @@ def main():
                     ),
                     "tfsi_stability":    tfsi_model.compute_tfsi_stability(),
                     "tfsi_auto_triggered": False,
+                    # Fix 1B: active_prescription is updated directly on change — only
+                    # set here from the cached variable so it survives across ticks
                     "active_prescription": _api_last_rx_text,
                     "eye_rubbing_signal": current_signals.get("eye_rubbing", 0.0),
                     "lighting_score":    sig_lighting.lighting_score,
@@ -601,6 +618,32 @@ def main():
                     "session_start":     session_start_time.isoformat(),
                     "baseline_complete": calibrator.is_ready,
                     "tick_count":        _state.state["tick_count"] + 1,
+                    # Fix 2: server-authoritative timestamp for age calculation
+                    "computed_at":       datetime.now(timezone.utc).isoformat(),
+                    # Fix 3 (blink_rate_bpm): expose raw BPM alongside 0-1 signal
+                    "blink_rate_bpm":    sig_blink_rate.get_current_bpm(),
+                    # Fix 5: live status dict for continuous status panel in UI
+                    "status": {
+                        "lighting": {
+                            "score":          sig_lighting.lighting_score,
+                            "classification": sig_lighting.get_stats().get("condition", "UNKNOWN"),
+                        },
+                        "distance_drift": {
+                            "drift_cm":       sig_dist_trend.current_drift_cm,
+                            "warning_active": abs(sig_dist_trend.current_drift_cm) >= 8.0,
+                        },
+                        "blink_quality": {
+                            "partial_ratio":  current_signals.get("blink_quality", 0.0),
+                            "warning_active": current_signals.get("blink_quality", 0.0) >= 0.6,
+                        },
+                        "tfsi": {
+                            "stability":      tfsi_model.compute_tfsi_stability(),
+                        },
+                        "posture": {
+                            "lean_signal":    current_signals.get("posture_lean", 0.0),
+                            "warning_active": current_signals.get("posture_lean", 0.0) >= 0.5,
+                        },
+                    },
                 })
 
             else:
@@ -653,10 +696,19 @@ def main():
             except Exception as _acuity_err:
                 print(f"  [ACUITY] Test error: {_acuity_err}")
         elif key == ord(' '):
-            # Manual prescription trigger for testing
+            # Manual prescription trigger — uses force_prescribe to bypass gates
             print(f"\n  [TEST] Manually triggering prescription at score {current_score:.0f}")
-            rx_engine._red_zone_since = time.time() - 11.0  # Skip the hold gate
-            rx_engine._last_prescription_time = 0.0          # Skip cooldown
+            forced_rx = rx_engine.force_prescribe(current_score, current_signals)
+            forced_rx_text = forced_rx.get("text", "")
+            _api_last_rx_text = forced_rx_text
+            _state.state["active_prescription"] = forced_rx_text   # Fix 1B
+            _state.state["prescription_timestamp"] = datetime.now(timezone.utc).isoformat()  # Fix 2
+            _push_event("prescription", f"Force-triggered: {forced_rx_text}")
+            if verifier is None or verifier.is_done():
+                verifier = RecoveryVerifier(
+                    strain_at_prescription=current_score,
+                    prescription_db_id=rx_engine.last_prescription_db_id,
+                )
 
     # ══════════════════════════════════════════════════════════════════════════
     # Cleanup

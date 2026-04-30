@@ -320,6 +320,30 @@ class PrescriptionEngine:
             db.close()
 
     # ─────────────────────────────────────────────────────────────────────────
+    def force_prescribe(self, strain_score: float, signal_values: dict) -> dict:
+        """
+        Bypass ALL gate checks (RED hold, cooldown) and fire a prescription
+        immediately.  Resets cooldown so normal gating resumes afterwards.
+
+        Used by:
+          - POST /controls/prescription  (dashboard "Force Prescription" button)
+          - Space key in main.py         (manual test trigger)
+
+        Returns the prescription dict that was fired.
+        """
+        prescription = self._generate(strain_score, signal_values)
+
+        # Reset gate so the normal engine doesn't double-fire
+        self._last_prescription_time = time.time()
+        self._red_zone_since = None
+        self._last_score_at_trigger = strain_score
+
+        self._save(prescription, strain_score, signal_values)
+        self._print_prescription(prescription, strain_score)
+
+        return prescription
+
+    # ─────────────────────────────────────────────────────────────────────────
     @property
     def last_trigger_score(self) -> float:
         return self._last_score_at_trigger

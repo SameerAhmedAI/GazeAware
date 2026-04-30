@@ -69,6 +69,8 @@ class CrashPredictor:
     def __init__(self) -> None:
         # One entry per 500ms tick, 180 entries = 90 seconds
         self._scores: deque[float] = deque(maxlen=CRASH_PREDICTOR_DEQUE_MAXLEN)
+        # Fix 4: last computed linear slope (score units per second)
+        self.last_slope: float = 0.0
 
     # ── Public API ─────────────────────────────────────────────────────────────
     def update(self, score: float) -> None:
@@ -128,6 +130,8 @@ class CrashPredictor:
         # ── Linear fit ────────────────────────────────────────────────────────
         coeffs = np.polyfit(x, scores, 1)   # [slope, intercept]
         slope, intercept = float(coeffs[0]), float(coeffs[1])
+        # Fix 4: store slope so main.py can expose trend_slope to the API
+        self.last_slope = slope
 
         # ── R² confidence ─────────────────────────────────────────────────────
         predicted = slope * x + intercept

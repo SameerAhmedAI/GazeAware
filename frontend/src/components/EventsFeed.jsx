@@ -1,10 +1,12 @@
 /**
- * EventsFeed.jsx — Fix 5
- * Displays the rolling alert events list from the WebSocket strain payload.
- * Props: events — array from strainData.events
+ * EventsFeed.jsx — Fix 5: Continuous status indicators + rolling event alerts.
+ * Props:
+ *   events — array from strainData.events
+ *   status — live status dict from strainData.status
  */
 import {
   ArrowUpFromLine, EyeOff, Sun, Droplets, AlertTriangle, Shield, Zap,
+  Ruler, User,
 } from 'lucide-react'
 
 const EVENT_STYLES = {
@@ -25,7 +27,7 @@ const DEFAULT_STYLE = {
 }
 
 function relativeTime(isoTimestamp) {
-  const diffMs = Date.now() - new Date(isoTimestamp).getTime()
+  const diffMs  = Date.now() - new Date(isoTimestamp).getTime()
   const diffSec = Math.floor(diffMs / 1000)
   if (diffSec < 60)  return `${diffSec}s ago`
   const diffMin = Math.floor(diffSec / 60)
@@ -33,9 +35,35 @@ function relativeTime(isoTimestamp) {
   return `${Math.floor(diffMin / 60)}h ago`
 }
 
-export default function EventsFeed({ events = [] }) {
-  // Show newest first, cap at 10 for display
+// ── Fix 5: Live status row ────────────────────────────────────────────────────
+function StatusRow({ icon: Icon, label, value, good, warn }) {
+  const color = good ? 'text-zone-green' : warn ? 'text-zone-red' : 'text-zone-yellow'
+  return (
+    <div className="flex items-center justify-between py-1.5 px-4 border-b border-border-subtle last:border-b-0">
+      <div className="flex items-center gap-2">
+        <Icon size={12} className={color} />
+        <span className="font-dm text-xs text-text-muted">{label}</span>
+      </div>
+      <span className={`font-mono text-xs font-medium ${color}`}>{value}</span>
+    </div>
+  )
+}
+
+export default function EventsFeed({ events = [], status = {} }) {
   const displayed = [...events].reverse().slice(0, 10)
+
+  // ── Parse status fields ───────────────────────────────────────────────────────
+  const lightingScore  = status?.lighting?.score ?? null
+  const lightingClass  = status?.lighting?.classification ?? null
+  const driftCm        = status?.distance_drift?.drift_cm ?? null
+  const driftWarn      = status?.distance_drift?.warning_active ?? false
+  const blinkRatio     = status?.blink_quality?.partial_ratio ?? null
+  const blinkWarn      = status?.blink_quality?.warning_active ?? false
+  const tfsiStab       = status?.tfsi?.stability ?? null
+  const leanSignal     = status?.posture?.lean_signal ?? null
+  const leanWarn       = status?.posture?.warning_active ?? false
+
+  const hasStatus = lightingScore !== null || driftCm !== null
 
   return (
     <div className="bg-surface border border-border-subtle rounded-2xl flex flex-col overflow-hidden">
@@ -46,10 +74,71 @@ export default function EventsFeed({ events = [] }) {
         <h3 className="font-syne font-bold text-lg text-text-primary">Live Alerts</h3>
       </div>
 
-      <div className="flex-1 overflow-y-auto" style={{ maxHeight: 320 }}>
+      {/* Fix 5: Permanent live status panel — always visible */}
+      {hasStatus && (
+        <div className="border-b border-border-subtle">
+          <p className="font-dm text-xs tracking-widest uppercase text-text-muted px-4 pt-3 pb-1">
+            Live Status
+          </p>
+          {lightingScore !== null && (
+            <StatusRow
+              icon={Sun}
+              label="Lighting"
+              value={lightingClass
+                ? `${lightingClass} (${Math.round(lightingScore)}/100)`
+                : `${Math.round(lightingScore)}/100`}
+              good={lightingScore >= 70}
+              warn={lightingScore < 40}
+            />
+          )}
+          {driftCm !== null && (
+            <StatusRow
+              icon={Ruler}
+              label="Distance"
+              value={driftWarn
+                ? `Drifted ${driftCm >= 0 ? '+' : ''}${driftCm.toFixed(1)} cm`
+                : 'Normal'}
+              good={!driftWarn}
+              warn={driftWarn}
+            />
+          )}
+          {blinkRatio !== null && (
+            <StatusRow
+              icon={EyeOff}
+              label="Blink Quality"
+              value={`${Math.round(blinkRatio * 100)}% partial${blinkWarn ? ' ⚠' : ''}`}
+              good={!blinkWarn}
+              warn={blinkWarn}
+            />
+          )}
+          {tfsiStab !== null && (
+            <StatusRow
+              icon={Droplets}
+              label="TFSI"
+              value={`${Math.round(tfsiStab * 100)}% stable`}
+              good={tfsiStab >= 0.6}
+              warn={tfsiStab < 0.4}
+            />
+          )}
+          {leanSignal !== null && (
+            <StatusRow
+              icon={User}
+              label="Posture"
+              value={leanWarn
+                ? `Leaning (${leanSignal.toFixed(2)})`
+                : 'Upright'}
+              good={!leanWarn}
+              warn={leanWarn}
+            />
+          )}
+        </div>
+      )}
+
+      {/* Rolling event list */}
+      <div className="flex-1 overflow-y-auto" style={{ maxHeight: 240 }}>
         {displayed.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-40 gap-3 text-center px-6">
-            <Shield className="text-text-muted" size={28} />
+          <div className="flex flex-col items-center justify-center h-28 gap-3 text-center px-6">
+            <Shield className="text-text-muted" size={24} />
             <p className="font-syne font-bold text-text-secondary text-sm">No alerts</p>
             <p className="font-dm text-xs text-text-muted">All signals nominal</p>
           </div>

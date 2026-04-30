@@ -42,4 +42,22 @@ state: dict = {
     "trigger_baseline":     False,
     "trigger_tfsi":         False,
     "trigger_acuity":       False,
+    # ── Phase 3 fixes: timestamp + raw BPM for accurate UI display ────────────
+    "computed_at":          None,   # ISO-8601 UTC — when the last tick computed
+    "blink_rate_bpm":       None,   # raw blinks-per-minute (not 0–1 signal)
+    # ── Fix 2: prescription timestamp for UI display ──────────────────────────
+    "prescription_timestamp": None, # ISO-8601 UTC — when active_prescription was set
+    # ── Fix 4: crash predictor slope + TFSI sample count ─────────────────────
+    "trend_slope":          0.0,    # linear slope from crash predictor (score/s)
+    "tfsi_sample_count":    0,      # number of readings in TFSI rolling window
+    # ── Fix 5: live continuous status indicators ──────────────────────────────
+    "status":               {},     # dict with lighting, distance, blink, tfsi, posture
+    # ── Fix 6: acuity test state machine ─────────────────────────────────────
+    "acuity_test_state": {
+        "phase":         "idle",    # idle | running | result
+        "current_line":  0,
+        "letters":       [],
+        "result":        None,      # Snellen fraction string when done
+        "time_remaining": 0,
+    },
 }

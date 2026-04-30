@@ -520,3 +520,106 @@ backend/
 ```
 
 *Last updated: Phase 3 completion (React Frontend Dark UI, Live Dashboard, History, Acuity & Weekly Reports)*
+
+---
+
+### ✅ Phase 3 Bugfixes — Prescription Force Trigger, Timestamp, Blink BPM
+
+| Fix | Files | Description |
+|-----|-------|-------------|
+| Fix 1A — Force prescription | `prescription.py`, `main.py` | Added `force_prescribe(score, signals)` method on `PrescriptionEngine` that bypasses the 10s RED gate and 120s cooldown. Both API flag and Space key call it directly. |
+| Fix 1B — active_prescription in UI | `main.py`, `server.py`, `Dashboard.jsx`, `api.js` | `active_prescription` now written to `shared_state` immediately on fire. Added `POST /controls/clear_prescription` endpoint. Added Dismiss (×) button on prescription card. |
+| Fix 2 — Timestamp accuracy | `main.py`, `server.py`, `Dashboard.jsx` | Added `computed_at` ISO-8601 field to `shared_state` and `/ws/strain`. Dashboard derives `displayAge` from `computed_at` via `setInterval(1s)`. Shows "Just updated" or "Updated Xs ago". |
+| Fix 3 — Blink BPM display | `main.py`, `server.py`, `shared_state.py`, `Dashboard.jsx`, `SignalBar.jsx` | Added `blink_rate_bpm` (float) from `BlinkRateSignal.get_current_bpm()` to state and WS payload. `SignalBar` accepts `customLabel` prop — blink_rate shows BPM; bar width still uses 0–1 value. |
+
+**New endpoint:**
+
+| Method | Path | Returns |
+|--------|------|---------|
+| POST | `/controls/clear_prescription` | `{"status":"cleared","control":"clear_prescription"}` |
+
+**New shared_state keys (Phase 3 bugfixes):**
+```python
+"computed_at":    None,   # ISO-8601 UTC string — set every 500ms tick
+"blink_rate_bpm": None,   # float — raw BPM from BlinkRateSignal.get_current_bpm()
+```
+
+**Architecture rule:** Always call `rx_engine.force_prescribe()` to bypass gates — never manipulate `_red_zone_since` or `_last_prescription_time` directly.
+
+*Last updated: Phase 3 bugfixes (Force Prescription, Timestamp, Blink BPM, Dismiss Button)*
+
+---
+
+### ✅ Phase 3 Six Bugfixes — Dashboard, Prescription, TFSI, Crash, Alerts, Acuity
+
+| Fix | Files | Description |
+|-----|-------|-------------|
+| Fix 1 — Remove StrainGauge | `Dashboard.jsx`, `StrainGauge.jsx` (deleted) | Removed StrainGauge column. Dashboard is now 2-col: Crash+TFSI left, Prescription right. Compact `Score: N/100` + `ZoneBadge` added inline in the status bar. ZoneBadge.jsx preserved — still used. |
+| Fix 2 — Prescription timestamp | `main.py`, `server.py`, `shared_state.py`, `Dashboard.jsx` | Added `prescription_timestamp` ISO-8601 field set every time `active_prescription` changes. Displayed in prescription card. Local dismiss clears card immediately without waiting for next WS tick. Force-prescription button shows spinner for up to 3s, then "Check backend — may be in cooldown" message. |
+| Fix 3 — Blink BPM signals WS | `server.py` | `blink_rate_bpm` now also included in `/ws/signals` payload (was already in `/ws/strain`). |
+| Fix 4 — Crash/TFSI always show | `crash_predictor.py`, `main.py`, `server.py`, `shared_state.py`, `Dashboard.jsx` | Crash Predictor has 4 states: stable/rising/recovering/warning — always shows something. TFSI has 5 color tiers + sample count. `trend_slope` and `tfsi_sample_count` added to shared state and WS broadcast. `last_slope` attribute added to `CrashPredictor`. |
+| Fix 5 — Live status panel | `main.py`, `server.py`, `shared_state.py`, `EventsFeed.jsx` | Added `status` dict to shared state (lighting, distance_drift, blink_quality, tfsi, posture). Populated every 500ms tick. Sent in `/ws/strain`. EventsFeed now shows a permanent `StatusPanel` above the breach event list. |
+| Fix 6 — Acuity result display | `acuity_test.py`, `server.py`, `shared_state.py`, `Acuity.jsx`, `api.js` | `acuity_test_state` added to shared state. On test completion, `phase="result"` and `result=fraction` are written immediately. Frontend polls `/snapshot` every 2s while test is running, shows live result card with "Done" button. Done button calls `POST /controls/acuity_reset`. |
+
+**New endpoints:**
+
+| Method | Path | Returns |
+|--------|------|---------| 
+| POST | `/controls/acuity_reset` | `{"status":"reset"}` |
+
+**New shared_state keys (Phase 3 six bugfixes):**
+```python
+"prescription_timestamp": None,  # ISO-8601 UTC — when active_prescription was last set
+"trend_slope":          0.0,     # float — raw linear slope from CrashPredictor (score/s)
+"tfsi_sample_count":    0,       # int — number of readings in TFSI rolling window
+"status":               {},      # dict — live per-signal status (lighting/drift/blink/tfsi/posture)
+"acuity_test_state": {           # dict — live acuity test state machine
+    "phase":         "idle",     # idle | running | result
+    "current_line":  0,
+    "letters":       [],
+    "result":        None,       # Snellen fraction when phase=="result"
+    "time_remaining": 0,
+},
+```
+
+**Updated `/ws/strain` payload (now includes):**
+```json
+{
+  "strain_score": 0.0,
+  "zone": "GREEN",
+  "tick": 0,
+  "crash_prediction": {...},
+  "active_prescription": null,
+  "prescription_timestamp": null,
+  "tfsi_stability": 1.0,
+  "tfsi_sample_count": 0,
+  "trend_slope": 0.0,
+  "events": [...],
+  "last_event": null,
+  "computed_at": "ISO-8601",
+  "blink_rate_bpm": null,
+  "status": {
+    "lighting":       {"score": float, "classification": str},
+    "distance_drift": {"drift_cm": float, "warning_active": bool},
+    "blink_quality":  {"partial_ratio": float, "warning_active": bool},
+    "tfsi":           {"stability": float},
+    "posture":        {"lean_signal": float, "warning_active": bool}
+  }
+}
+```
+
+**Updated `/ws/signals` payload (now includes):**
+```json
+{
+  "blink_rate": 0.0, "blink_quality": 0.0, "screen_distance": 0.0,
+  "squint": 0.0, "gaze_entropy": 0.0, "blink_irregularity": 0.0,
+  "eye_rubbing": 0.0, "posture_lean": 0.0, "scleral_redness": 0.0,
+  "lighting_score": 0.0, "distance_drift_cm": 0.0, "modifiers": {},
+  "blink_rate_bpm": null
+}
+```
+
+**`CrashPredictor` change:**
+- New attribute `last_slope: float = 0.0` — updated in `_predict_crash()` every time polyfit runs. Read by `main.py` to populate `trend_slope` in shared state.
+
+*Last updated: Phase 3 six bugfixes (Dashboard, Prescription, TFSI, Crash, Live Alerts, Acuity)*

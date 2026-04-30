@@ -4,10 +4,20 @@ function getBarColor(value) {
   return '#ef4444'                    // red
 }
 
-export default function SignalBar({ name, value = 0 }) {
-  const safeValue = Math.min(1, Math.max(0, value ?? 0))
-  const color = getBarColor(safeValue)
-  const displayValue = safeValue.toFixed(2)
+/**
+ * SignalBar — renders a labelled progress bar for a 0–1 signal value.
+ *
+ * Props:
+ *   name        — display label
+ *   value       — 0.0–1.0 signal strength (controls bar width and colour)
+ *   customLabel — when provided, replaces the raw float shown next to the name.
+ *                 Useful for showing a human-readable unit like "12.4 bpm"
+ *                 while the bar still reflects the 0–1 signal value.
+ */
+export default function SignalBar({ name, value = 0, customLabel }) {
+  const safeValue   = Math.min(1, Math.max(0, value ?? 0))
+  const color       = getBarColor(safeValue)
+  const displayValue = customLabel ?? safeValue.toFixed(2)
 
   return (
     <div className="flex flex-col gap-1.5">

@@ -5,7 +5,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip,
   ReferenceLine, ResponsiveContainer,
 } from 'recharts'
-import { getAcuityHistory, triggerAcuity } from '../services/api'
+import { getAcuityHistory, triggerAcuity, getSnapshot, resetAcuity } from '../services/api'
 import GlassCard  from '../components/GlassCard'
 import ZoneBadge  from '../components/ZoneBadge'
 
@@ -65,6 +65,9 @@ export default function Acuity() {
   const [triggerMsg, setTriggerMsg] = useState('')
   const pollRef                     = useRef(null)
   const pollCountRef                = useRef(0)
+  // Fix 6: live acuity test state from shared_state (read via /snapshot)
+  const [acuityTestState, setAcuityTestState] = useState(null)
+  const snapshotPollRef             = useRef(null)
 
   const load = useCallback(() => {
     setLoading(true)
@@ -115,9 +118,33 @@ export default function Acuity() {
 
   useEffect(() => () => clearInterval(pollRef.current), [])
 
+  // Fix 6: Poll /snapshot every 2s while test is running to get acuity_test_state
+  useEffect(() => {
+    if (!triggered && !polling) return
+    snapshotPollRef.current = setInterval(async () => {
+      try {
+        const snap = await getSnapshot()
+        const ts   = snap?.acuity_test_state
+        if (ts) setAcuityTestState(ts)
+        // If result phase, stop spinner and load history after 1s
+        if (ts?.phase === 'result' && ts?.result) {
+          setPolling(false)
+          setTriggered(false)
+          setTriggerMsg('')
+          clearInterval(snapshotPollRef.current)
+          setTimeout(() => load(), 1000)
+        }
+      } catch {
+        // ignore
+      }
+    }, 2000)
+    return () => clearInterval(snapshotPollRef.current)
+  }, [triggered, polling, load])
+
   const handleTriggerAcuity = useCallback(async () => {
     try {
       setTriggered(true)
+      setAcuityTestState(null)  // clear any previous result
       await triggerAcuity()
       startPolling(records.length)
     } catch (e) {
@@ -125,6 +152,15 @@ export default function Acuity() {
       setTriggered(false)
     }
   }, [records.length, startPolling])
+
+  // Fix 6: Done button — reset shared state, clear local UI state
+  const handleDone = useCallback(async () => {
+    try { await resetAcuity() } catch { /* ignore */ }
+    setAcuityTestState(null)
+    setTriggered(false)
+    setPolling(false)
+    setTriggerMsg('')
+  }, [])
 
   if (loading) {
     return (
@@ -238,7 +274,28 @@ export default function Acuity() {
         )}
       </GlassCard>
 
-      {/* ── Latest Result Hero ── */}
+      {/* Fix 6: Live result from shared_state — shows immediately after test ends */}
+      {acuityTestState?.phase === 'result' && acuityTestState?.result && (
+        <GlassCard className="flex flex-col items-center py-10 gap-4" variant="warning">
+          <p className="font-dm font-medium text-xs tracking-widest uppercase text-text-muted">
+            Test Complete — Live Result
+          </p>
+          <p className={`font-mono font-bold text-6xl ${snellenColor(acuityTestState.result)}`}>
+            {acuityTestState.result}
+          </p>
+          <ZoneBadge zone={snellenZone(acuityTestState.result)} />
+          <p className="font-dm text-sm text-text-muted">Result saved to database</p>
+          <button
+            id="btn-acuity-done"
+            onClick={handleDone}
+            className="mt-2 bg-elevated border border-border-default hover:border-border-active rounded-xl px-6 py-2 font-dm text-sm text-text-primary transition-all duration-200"
+          >
+            Done
+          </button>
+        </GlassCard>
+      )}
+
+      {/* ── Latest Result Hero (from DB) ── */}
       {latest ? (
         <GlassCard className="flex flex-col items-center py-10 gap-4">
           <p className="font-dm font-medium text-xs tracking-widest uppercase text-text-muted">Latest Result</p>

@@ -60,6 +60,11 @@ from backend.config import (
 )
 from backend.database.db import SessionLocal, init_db
 from backend.database.models import AcuityLog
+# Fix 6: update shared state so frontend can display result immediately
+try:
+    from backend.api import shared_state as _acuity_state
+except ImportError:
+    _acuity_state = None
 
 # ── MediaPipe landmark indices (copied from main.py — do NOT import main) ──────
 LEFT_EYE_IDX  = [362, 385, 387, 263, 373, 380]
@@ -320,6 +325,15 @@ class AcuityTest:
             init_db()
             db = SessionLocal()
             try:
+                # Parse fraction for numeric columns
+                num, denom = (20, 20)
+                if fraction and "/" in fraction:
+                    try:
+                        parts = fraction.split("/")
+                        num, denom = int(parts[0]), int(parts[1])
+                    except Exception:
+                        pass
+                score_num = SNELLEN_NUMERIC.get(fraction, None)
                 row = AcuityLog(
                     timestamp        = datetime.now(timezone.utc).isoformat(),
                     snellen_fraction = fraction,
@@ -328,6 +342,9 @@ class AcuityTest:
                     cheat_detected   = int(cheat),
                     squint_detected  = int(squint),
                     session_id       = self.session_id,
+                    snellen_numerator   = num,
+                    snellen_denominator = denom,
+                    score_numeric       = score_num,
                 )
                 db.add(row)
                 db.commit()
@@ -522,6 +539,19 @@ class AcuityTest:
         # Log to DB
         self._log_result(final_fraction, last_row_passed, dist_avg,
                           cheat_detected, squint_detected)
+
+        # Fix 6: Update shared_state so frontend reads result immediately
+        try:
+            if _acuity_state is not None:
+                _acuity_state.state["acuity_test_state"] = {
+                    "phase":         "result",
+                    "current_line":  last_row_passed,
+                    "letters":       [],
+                    "result":        final_fraction,
+                    "time_remaining": 0,
+                }
+        except Exception:
+            pass
 
         # Wait 5 s or any key press
         start_wait = time.time()

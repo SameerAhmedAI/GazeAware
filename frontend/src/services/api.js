@@ -24,7 +24,11 @@ export const getDegradationReport   = () => get('/report/degradation')
 export const getWeeklyReport        = () => get('/report/weekly')
 
 // Fix 3: Control endpoints
-export const triggerPrescription = () => post('/controls/prescription')
-export const triggerBaseline     = () => post('/controls/baseline')
-export const triggerTfsi         = () => post('/controls/tfsi')
-export const triggerAcuity       = () => post('/controls/acuity')
+export const triggerPrescription  = () => post('/controls/prescription')
+export const triggerBaseline      = () => post('/controls/baseline')
+export const triggerTfsi          = () => post('/controls/tfsi')
+export const triggerAcuity        = () => post('/controls/acuity')
+// Fix 1B: Dismiss the active prescription banner
+export const clearPrescription    = () => post('/controls/clear_prescription')
+// Fix 6: Reset acuity test state machine to idle
+export const resetAcuity          = () => post('/controls/acuity_reset')

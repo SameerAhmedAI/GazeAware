@@ -223,6 +223,28 @@ async def control_acuity() -> dict:
     return {"status": "triggered", "control": "acuity"}
 
 
+@app.post("/controls/clear_prescription")
+async def control_clear_prescription() -> dict:
+    """Dismiss the active prescription banner in the UI."""
+    _state.state["active_prescription"] = None
+    _state.state["prescription_timestamp"] = None
+    return {"status": "cleared", "control": "clear_prescription"}
+
+
+@app.post("/controls/acuity_reset")
+async def reset_acuity() -> dict:
+    """Reset the acuity test state machine to idle (called by Acuity.jsx Done button)."""
+    _state.state["acuity_test_active"] = False
+    _state.state["acuity_test_state"] = {
+        "phase": "idle",
+        "current_line": 0,
+        "letters": [],
+        "result": None,
+        "time_remaining": 0,
+    }
+    return {"status": "reset"}
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # Fix 4: MJPEG camera feed endpoint
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -281,9 +303,21 @@ async def _broadcast_strain():
             }),
             "active_prescription": s.get("active_prescription"),
             "tfsi_stability":    s.get("tfsi_stability", 1.0),
-            # Fix 2: include events in strain broadcast
+            # Fix 2: include events + timestamps in strain broadcast
             "events":            s.get("events", []),
             "last_event":        s.get("last_event"),
+            # Fix 2 (timestamp): server-authoritative ISO timestamp for age calc
+            "computed_at":       s.get("computed_at"),
+            # Fix 2: prescription timestamp
+            "prescription_timestamp": s.get("prescription_timestamp"),
+            # Fix 3 (blink BPM): raw blinks-per-minute alongside 0-1 signal
+            "blink_rate_bpm":    s.get("blink_rate_bpm"),
+            # Fix 4: trend slope for crash predictor trajectory display
+            "trend_slope":       s.get("trend_slope", 0.0),
+            # Fix 4: TFSI sample count for display
+            "tfsi_sample_count": s.get("tfsi_sample_count", 0),
+            # Fix 5: continuous live status for all signal channels
+            "status":            s.get("status", {}),
         }
 
         disconnected: set[WebSocket] = set()
@@ -348,6 +382,8 @@ async def _broadcast_signals():
             "lighting_score":    s.get("lighting_score", 0.0),
             "distance_drift_cm": s.get("distance_drift_cm", 0.0),
             "modifiers":         s.get("modifiers", {}),
+            # Fix 3: also expose blink_rate_bpm from signals WS for completeness
+            "blink_rate_bpm":    s.get("blink_rate_bpm"),
         }
 
         disconnected: set[WebSocket] = set()
