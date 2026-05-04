@@ -1,0 +1,132 @@
+@import "tailwindcss";
+
+@theme {
+  --font-syne: 'Syne', sans-serif;
+  --font-dm: 'DM Sans', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  --color-bg-void: #050507;
+  --color-bg-base: #09090f;
+  --color-bg-surface: #0f0f17;
+  --color-bg-elevated: #14141e;
+  --color-bg-overlay: #1a1a26;
+  --color-border-subtle: #1e1e2e;
+  --color-border-default: #2a2a3d;
+  --color-border-active: #3d3d5c;
+  --color-text-primary: #f0f0f8;
+  --color-text-secondary: #8888aa;
+  --color-text-muted: #44445a;
+  --color-accent: #e8e8f8;
+  --color-accent-dim: #9090b8;
+  --color-zone-green: #10b981;
+  --color-zone-yellow: #f59e0b;
+  --color-zone-red: #ef4444;
+  --color-zone-critical: #dc2626;
+}
+
+:root {
+  --bg-void: #050507;
+  --bg-base: #09090f;
+  --bg-surface: #0f0f17;
+  --bg-elevated: #14141e;
+  --bg-overlay: #1a1a26;
+  --border-subtle: #1e1e2e;
+  --border-default: #2a2a3d;
+  --border-active: #3d3d5c;
+  --text-primary: #f0f0f8;
+  --text-secondary: #8888aa;
+  --text-muted: #44445a;
+  --accent: #e8e8f8;
+  --accent-dim: #9090b8;
+  --accent-glow: rgba(232, 232, 248, 0.08);
+  --zone-green: #10b981;
+  --zone-green-bg: rgba(16, 185, 129, 0.08);
+  --zone-green-border: rgba(16, 185, 129, 0.25);
+  --zone-yellow: #f59e0b;
+  --zone-yellow-bg: rgba(245, 158, 11, 0.08);
+  --zone-yellow-border: rgba(245, 158, 11, 0.25);
+  --zone-red: #ef4444;
+  --zone-red-bg: rgba(239, 68, 68, 0.08);
+  --zone-red-border: rgba(239, 68, 68, 0.25);
+  --zone-critical: #dc2626;
+  --zone-critical-bg: rgba(220, 38, 38, 0.12);
+  --zone-critical-border: rgba(220, 38, 38, 0.4);
+}
+
+@keyframes pulse-critical {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+  50% { box-shadow: 0 0 20px 4px rgba(220, 38, 38, 0.35); }
+}
+
+@keyframes pulse-live {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.85); }
+}
+
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes number-glow {
+  0%, 100% { text-shadow: 0 0 0px rgba(240, 240, 248, 0); }
+  50% { text-shadow: 0 0 24px rgba(240, 240, 248, 0.4); }
+}
+
+@keyframes spin-ring {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes slide-in-right {
+  from { opacity: 0; transform: translateX(24px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body, #root {
+  height: 100%;
+  background-color: var(--bg-base);
+}
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: var(--bg-surface); }
+::-webkit-scrollbar-thumb { background: var(--border-active); border-radius: 2px; }
+
+/* Animations as utility classes */
+.animate-pulse-critical { animation: pulse-critical 2s infinite; }
+.animate-pulse-live { animation: pulse-live 1.5s infinite; }
+.animate-fade-in-up { animation: fade-in-up 0.5s ease-out both; }
+.animate-number-glow { animation: number-glow 2s infinite; }
+.animate-spin-ring { animation: spin-ring 1s linear infinite; }
+.animate-slide-in-right { animation: slide-in-right 0.4s ease-out both; }
+
+/* Recharts overrides */
+.recharts-tooltip-wrapper .recharts-default-tooltip {
+  background: var(--bg-elevated) !important;
+  border: 1px solid var(--border-default) !important;
+  border-radius: 8px !important;
+}
+.recharts-cartesian-axis-tick-value {
+  fill: var(--text-muted) !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 11px !important;
+}

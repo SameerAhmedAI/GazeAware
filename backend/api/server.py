@@ -1,85 +1,67 @@
 """
 GazeAware — Phase 2.4: FastAPI Server
-======================================
-Exposes the real-time strain state, historical DB records, and two WebSocket
-streams to the React dashboard (or any HTTP client) running on localhost.
-
-Architecture rules:
-- Never import anything from backend.main — data flows through shared_state only.
-- All DB sessions use try/finally to guarantee close() even on exception.
-- WebSocket broadcast loops never crash: exceptions are caught and the client
-  is removed from the active-set so the loop continues for other clients.
-- The FastAPI `app` instance is importable as:
-      from backend.api.server import app
-
-CORS is wide-open (*) for development; restrict origins before production deploy.
 """
 
 import asyncio
 import copy
+import math
+import time
+import cv2
+from datetime import datetime, timezone
 from typing import Any
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 
-# ── Shared state bridge (written by main.py, read here) ──────────────────────
 from backend.api import shared_state as _state
-
-# ── Database access ───────────────────────────────────────────────────────────
 from backend.database.db import SessionLocal
 from backend.database.models import (
     Prescription as DBPrescription,
     SignalLog      as DBSignalLog,
     WeeklyReport   as DBWeeklyReport,
 )
-
-# ── Vision acuity degradation report ─────────────────────────────────────────
 from backend.vision_acuity.degradation_tracker import get_degradation_report
 
-# ── App setup ─────────────────────────────────────────────────────────────────
-app = FastAPI(
-    title="GazeAware API",
-    description="Real-time eye strain monitoring REST + WebSocket API (Phase 2.4)",
-    version="2.4.0",
-)
+app = FastAPI(title="GazeAware API", version="2.4.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],   # Unrestricted for local dev — restrict before production
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# Helper — convert a SQLAlchemy row to a plain dict
-# ═══════════════════════════════════════════════════════════════════════════════
+def _safe_float(value, fallback=None):
+    try:
+        f = float(value)
+        if math.isinf(f) or math.isnan(f):
+            return fallback
+        return f
+    except (TypeError, ValueError):
+        return fallback
+
 
 def _row_to_dict(row: Any) -> dict:
-    """Strip the SQLAlchemy instance-state key and return a plain dict."""
     d = row.__dict__.copy()
     d.pop("_sa_instance_state", None)
-    # Convert datetime / date objects to ISO strings so they serialise cleanly
     for k, v in d.items():
         if hasattr(v, "isoformat"):
             d[k] = v.isoformat()
     return d
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# REST endpoints
-# ═══════════════════════════════════════════════════════════════════════════════
+# ── REST endpoints ─────────────────────────────────────────────────────────────
 
 @app.get("/health")
 async def health() -> dict:
-    """Liveness probe — confirms the API server is reachable."""
     return {"status": "ok", "phase": "2.4"}
 
 
 @app.get("/session")
 async def session_info() -> dict:
-    """Return current session metadata from shared state."""
     s = _state.state
     return {
         "session_id":        s.get("session_id"),
@@ -90,22 +72,14 @@ async def session_info() -> dict:
 
 @app.get("/snapshot")
 async def snapshot() -> dict:
-    """Return a full copy of the current shared state as JSON."""
-    # Return a shallow copy so the dict doesn't change mid-serialisation
     return copy.copy(_state.state)
 
 
 @app.get("/history/prescriptions")
 async def history_prescriptions() -> list:
-    """Last 50 prescriptions, newest first."""
     db = SessionLocal()
     try:
-        rows = (
-            db.query(DBPrescription)
-            .order_by(DBPrescription.id.desc())
-            .limit(50)
-            .all()
-        )
+        rows = db.query(DBPrescription).order_by(DBPrescription.id.desc()).limit(50).all()
         return [_row_to_dict(r) for r in rows]
     except Exception:
         return []
@@ -115,15 +89,9 @@ async def history_prescriptions() -> list:
 
 @app.get("/history/signals")
 async def history_signals() -> list:
-    """Last 500 signal log rows, newest first (for charting)."""
     db = SessionLocal()
     try:
-        rows = (
-            db.query(DBSignalLog)
-            .order_by(DBSignalLog.id.desc())
-            .limit(500)
-            .all()
-        )
+        rows = db.query(DBSignalLog).order_by(DBSignalLog.id.desc()).limit(500).all()
         return [_row_to_dict(r) for r in rows]
     except Exception:
         return []
@@ -133,10 +101,8 @@ async def history_signals() -> list:
 
 @app.get("/history/acuity")
 async def history_acuity() -> list:
-    """All acuity log rows, newest first."""
     db = SessionLocal()
     try:
-        # AcuityLog is created dynamically; use raw SQL to avoid import issues
         from sqlalchemy import text
         rows = db.execute(
             text(
@@ -145,10 +111,8 @@ async def history_acuity() -> list:
                 "FROM acuity_logs ORDER BY id DESC"
             )
         ).fetchall()
-        keys = [
-            "id", "timestamp", "snellen_fraction", "last_row_passed",
-            "distance_cm", "cheat_detected", "squint_detected", "session_id",
-        ]
+        keys = ["id", "timestamp", "snellen_fraction", "last_row_passed",
+                "distance_cm", "cheat_detected", "squint_detected", "session_id"]
         return [dict(zip(keys, row)) for row in rows]
     except Exception:
         return []
@@ -158,10 +122,8 @@ async def history_acuity() -> list:
 
 @app.get("/report/degradation")
 async def report_degradation() -> dict:
-    """Vision degradation analysis from degradation_tracker."""
     try:
         report = get_degradation_report()
-        # Convert any datetime objects inside weekly_data to strings
         for week in report.get("weekly_data", []):
             for k, v in week.items():
                 if hasattr(v, "isoformat"):
@@ -173,15 +135,9 @@ async def report_degradation() -> dict:
 
 @app.get("/report/weekly")
 async def report_weekly() -> list:
-    """Last 4 rows from the weekly_reports table."""
     db = SessionLocal()
     try:
-        rows = (
-            db.query(DBWeeklyReport)
-            .order_by(DBWeeklyReport.id.desc())
-            .limit(4)
-            .all()
-        )
+        rows = db.query(DBWeeklyReport).order_by(DBWeeklyReport.id.desc()).limit(4).all()
         return [_row_to_dict(r) for r in rows]
     except Exception:
         return []
@@ -189,43 +145,101 @@ async def report_weekly() -> list:
         db.close()
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# WebSocket — /ws/strain
-# ═══════════════════════════════════════════════════════════════════════════════
+# ── Action endpoints ───────────────────────────────────────────────────────────
+
+@app.post("/actions/force_prescription")
+async def force_prescription() -> dict:
+    _state.state["action_force_prescription"] = True
+    return {
+        "status":    "queued",
+        "action":    "force_prescription",
+        "message":   "Prescription will trigger on next engine tick (~500ms)",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+@app.post("/actions/trigger_acuity")
+async def trigger_acuity() -> dict:
+    _state.state["action_trigger_acuity"] = True
+    return {
+        "status":    "queued",
+        "action":    "trigger_acuity",
+        "message":   "Acuity test will launch in OpenCV window on next tick",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+@app.post("/actions/trigger_tfsi")
+async def trigger_tfsi() -> dict:
+    _state.state["action_trigger_tfsi"] = True
+    return {
+        "status":    "queued",
+        "action":    "trigger_tfsi",
+        "message":   "TFSI stability check will run on next tick",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+# ── MJPEG camera feed ──────────────────────────────────────────────────────────
+
+def _generate_frames():
+    while True:
+        frame = _state.state.get("latest_frame")
+        if frame is None:
+            time.sleep(0.05)
+            continue
+        try:
+            _, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 60])
+            yield (
+                b'--frame\r\n'
+                b'Content-Type: image/jpeg\r\n\r\n'
+                + buffer.tobytes()
+                + b'\r\n'
+            )
+        except Exception:
+            pass
+        time.sleep(0.033)
+
+
+@app.get("/video_feed")
+async def video_feed():
+    return StreamingResponse(
+        _generate_frames(),
+        media_type="multipart/x-mixed-replace;boundary=frame"
+    )
+
+
+# ── WebSocket /ws/strain ───────────────────────────────────────────────────────
 
 _strain_clients: set[WebSocket] = set()
 
 
 async def _broadcast_strain():
-    """Background task: push strain summary to all /ws/strain clients every 500ms."""
+    global _strain_clients
     while True:
         await asyncio.sleep(0.5)
         if not _strain_clients:
             continue
-
         s = _state.state
+        crash = s.get("crash_prediction", {})
         payload = {
-            "strain_score":      s.get("strain_score", 0.0),
-            "zone":              s.get("zone", "GREEN"),
-            "tick":              s.get("tick_count", 0),
-            "crash_prediction":  s.get("crash_prediction", {
-                "will_crash": False,
-                "seconds_until_crash": None,
-                "confidence": 0.0,
-            }),
+            "strain_score":    _safe_float(s.get("strain_score"), 0.0),
+            "zone":            s.get("zone", "GREEN"),
+            "tick":            int(s.get("tick_count", 0)),
+            "crash_prediction": {
+                "will_crash":          bool(crash.get("will_crash", False)),
+                "seconds_until_crash": _safe_float(crash.get("seconds_until_crash"), None),
+                "confidence":          _safe_float(crash.get("confidence"), 0.0),
+            },
             "active_prescription": s.get("active_prescription"),
-            "tfsi_stability":    s.get("tfsi_stability", 1.0),
+            "tfsi_stability":  _safe_float(s.get("tfsi_stability"), 1.0),
         }
-
         disconnected: set[WebSocket] = set()
         for ws in list(_strain_clients):
             try:
                 await ws.send_json(payload)
-            except WebSocketDisconnect:
-                disconnected.add(ws)
             except Exception:
                 disconnected.add(ws)
-
         _strain_clients -= disconnected
 
 
@@ -236,59 +250,53 @@ async def _start_strain_broadcaster():
 
 @app.websocket("/ws/strain")
 async def ws_strain(websocket: WebSocket):
-    """WebSocket endpoint that streams strain score updates every 500ms."""
     await websocket.accept()
     _strain_clients.add(websocket)
     try:
-        # Keep the connection alive; broadcasts happen in the background task
         while True:
-            await websocket.receive_text()   # blocks until client sends or disconnects
+            try:
+                await websocket.receive_text()
+            except Exception:
+                break
     except WebSocketDisconnect:
         pass
     finally:
         _strain_clients.discard(websocket)
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# WebSocket — /ws/signals
-# ═══════════════════════════════════════════════════════════════════════════════
+# ── WebSocket /ws/signals ──────────────────────────────────────────────────────
 
 _signal_clients: set[WebSocket] = set()
 
 
 async def _broadcast_signals():
-    """Background task: push full signal values to all /ws/signals clients every 500ms."""
+    global _signal_clients
     while True:
         await asyncio.sleep(0.5)
         if not _signal_clients:
             continue
-
         s = _state.state
         sigs = s.get("signals", {})
         payload = {
-            "blink_rate":        sigs.get("blink_rate", 0.0),
-            "blink_quality":     sigs.get("blink_quality", 0.0),
-            "screen_distance":   sigs.get("screen_distance", 0.0),
-            "squint":            sigs.get("squint", 0.0),
-            "gaze_entropy":      sigs.get("gaze_entropy", 0.0),
-            "blink_irregularity": sigs.get("blink_irregularity", 0.0),
-            "eye_rubbing":       sigs.get("eye_rubbing", 0.0),
-            "posture_lean":      sigs.get("posture_lean", 0.0),
-            "scleral_redness":   sigs.get("scleral_redness", 0.0),
-            "lighting_score":    s.get("lighting_score", 0.0),
-            "distance_drift_cm": s.get("distance_drift_cm", 0.0),
-            "modifiers":         s.get("modifiers", {}),
+            "blink_rate":         _safe_float(sigs.get("blink_rate"),         0.0),
+            "blink_quality":      _safe_float(sigs.get("blink_quality"),      0.0),
+            "screen_distance":    _safe_float(sigs.get("screen_distance"),    0.0),
+            "squint":             _safe_float(sigs.get("squint"),             0.0),
+            "gaze_entropy":       _safe_float(sigs.get("gaze_entropy"),       0.0),
+            "blink_irregularity": _safe_float(sigs.get("blink_irregularity"), 0.0),
+            "eye_rubbing":        _safe_float(sigs.get("eye_rubbing"),        0.0),
+            "posture_lean":       _safe_float(sigs.get("posture_lean"),       0.0),
+            "scleral_redness":    _safe_float(sigs.get("scleral_redness"),    0.0),
+            "lighting_score":     _safe_float(s.get("lighting_score"),        0.0),
+            "distance_drift_cm":  _safe_float(s.get("distance_drift_cm"),     0.0),
+            "modifiers":          s.get("modifiers", {}),
         }
-
         disconnected: set[WebSocket] = set()
         for ws in list(_signal_clients):
             try:
                 await ws.send_json(payload)
-            except WebSocketDisconnect:
-                disconnected.add(ws)
             except Exception:
                 disconnected.add(ws)
-
         _signal_clients -= disconnected
 
 
@@ -299,12 +307,14 @@ async def _start_signals_broadcaster():
 
 @app.websocket("/ws/signals")
 async def ws_signals(websocket: WebSocket):
-    """WebSocket endpoint that streams all signal values every 500ms."""
     await websocket.accept()
     _signal_clients.add(websocket)
     try:
         while True:
-            await websocket.receive_text()
+            try:
+                await websocket.receive_text()
+            except Exception:
+                break
     except WebSocketDisconnect:
         pass
     finally:

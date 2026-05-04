@@ -288,8 +288,6 @@ Gate conditions: **10 continuous seconds in RED zone** + **120-second cooldown**
 
 ---
 
-*Last updated: Phase 2.1 completion (Cognitive Crash Predictor + TFSI Auto-Trigger + Eye Rubbing Detection)*
-
 ### New Config Keys Added in Phase 2.1 (`backend/config.py`)
 
 | Key | Value | Purpose |
@@ -392,8 +390,6 @@ A    # → launches Visual Acuity Test in a new OpenCV window
 .venv\Scripts\python.exe backend/vision_acuity/degradation_tracker.py
 ```
 
-*Last updated: Phase 2.2 completion (Digital Visual Acuity Test + Vision Degradation Tracking)*
-
 ---
 
 ### ✅ Phase 2.4 — FastAPI Backend Layer (Complete)
@@ -457,5 +453,24 @@ backend/
     └── server.py           ← FastAPI app, REST + WebSocket endpoints
 ```
 
-*Last updated: Phase 2.4 completion (FastAPI Backend Layer — REST + WebSocket API)*
 
+---
+
+### ✅ Phase 3 — React Frontend Dark UI (Complete)
+
+**Overview:**
+Developed a React-based frontend using Vite to replace previous console and overlay interfaces. Built a dark-themed UI tailored for clinical and personal strain monitoring, syncing with the backend via REST and WebSockets, complete with a persistent state and live camera feed.
+
+**Files created/modified in Phase 3:**
+
+| File | What changed |
+|------|-------------|
+| `frontend/src/hooks/useGazeSocket.js` | **NEW** — WebSocket hook for real-time hydration of strain and signal data from the FastAPI backend. Manages connection state and automatic reconnection. |
+| `frontend/src/pages/Dashboard.jsx` | **NEW** — Core live monitoring dashboard. Features a clinical dark-mode layout, live camera feed integration, live status panel, dynamic metric cards, and real-time prescriptions. |
+| `frontend/src/pages/Acuity.jsx` | **NEW** — Interactive Digital Visual Acuity test workflow, connecting to backend triggers and displaying persistent results. |
+| `frontend/src/components/` | **NEW** — Modular UI components including `GlassCard`, `StatCard`, `SignalBar`, `ZoneBadge`, and `ConnectionStatus` enforcing a cohesive premium glassmorphism aesthetic. |
+| `frontend/src/pages/Landing.jsx`, `History.jsx`, `Report.jsx` | **NEW** — Views for application onboarding, historical strain data display, and weekly ergonomic reports. |
+| `.gitignore` | **UPDATED** — Merged frontend-specific gitignore rules into the root project file. |
+| `AI_CONTEXT.md` & `README.md` | **UPDATED** — Documented the new frontend structure and Phase 3 completion. |
+
+*Last updated: Phase 3 completion (React Frontend Dark UI)*

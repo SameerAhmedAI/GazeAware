@@ -2,8 +2,8 @@
 
 > **AI-powered passive eye strain monitor** — webcam only, fully local, zero wearables.
 
-**Authors:** Sameer Ahmed & Muhammad Ahmed Rayyan | **Institution:** SZABIST, Karachi  
-**Status:** Phase 2.4 Complete (FastAPI Backend Layer, REST & WebSocket Endpoints)  
+**Authors:** Sameer Ahmed, Muhammad Ahmed Rayyan, Umul Baneen, Mohan Singh, Basit | **Institution:** SZABIST, Karachi  
+**Status:** Phase 3 Complete (React Frontend Dark UI, REST & WebSocket Endpoints)  
 **Python:** 3.11+ | **mediapipe:** 0.10.14 | **opencv:** 4.13.0  
 
 ---
@@ -26,6 +26,7 @@ It tracks **11 simultaneous eye, environmental, and behavioral signals**, fuses 
 - **Tear-Film Stability Index (TFSI)**: Clinical dry-eye engine with 4-signal weighted scoring and auto-alert.
 - **AI Weekly Strain Report**: Groq-powered 7-day analysis with LLaMA 3.1 ergonomic recommendations.
 - **FastAPI Backend**: Built-in REST API and 500ms WebSocket streams (`/ws/strain`, `/ws/signals`) for real-time frontend integration.
+- **React Frontend**: A clinical dark-themed React UI built with Vite for tracking live statistics, overlays, and user prescriptions.
 
 ---
 
@@ -52,10 +53,15 @@ pip install -r requirements.txt
 copy .env.example .env
 # Edit .env and add your GROQ_API_KEY (free at https://console.groq.com)
 
-# 6. Run the core engine
+# 6. Run the backend engine
 python backend/main.py
 # FastAPI auto-starts on http://127.0.0.1:8000
 # Interactive API docs: http://127.0.0.1:8000/docs
+
+# 7. Start the React Frontend (in a new terminal)
+cd frontend
+npm install
+npm run dev
 ```
 
 > **Python 3.11+ required.** No GPU needed — runs entirely on CPU. It will take 60 seconds on first run to silently build your personal baseline profile.
