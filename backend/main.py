@@ -430,22 +430,10 @@ def main():
                 if _state.state.get("action_force_prescription"):
                     _state.state["action_force_prescription"] = False
                     try:
-                        rx_engine._red_zone_since         = time.time() - 11.0
-                        rx_engine._last_prescription_time = 0.0
-                        # Force-fire immediately — don't wait for next tick
-                        rx = rx_engine.update(current_score, current_signals)
-                        if rx:
-                            _api_last_rx_text = rx.get("text")
-                            _state.state["active_prescription"] = _api_last_rx_text
-                            verifier = RecoveryVerifier(
-                                strain_at_prescription=current_score,
-                                prescription_db_id=rx_engine.last_prescription_db_id,
-                            )
-                        else:
-                            # update() still blocked — set a default prescription directly
-                            _api_last_rx_text = "CLOSE EYES FULLY, HOLD 3 SECONDS, REPEAT 10 TIMES"
-                            _state.state["active_prescription"] = _api_last_rx_text
-                        print(f"\n  [ACTION] Force prescription: {_api_last_rx_text}\n")
+                        text = rx_engine.force_fire(current_score, current_signals)
+                        _api_last_rx_text = text
+                        _state.state["active_prescription"] = text
+                        print(f"\n  [ACTION] Force prescription: {text}\n")
                     except Exception as e:
                         import traceback
                         traceback.print_exc()

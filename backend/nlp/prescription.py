@@ -33,12 +33,6 @@ from backend.config import (
     PRESCRIPTION_RED_ZONE_THRESHOLD,
     PRESCRIPTION_RED_ZONE_HOLD_SECONDS,
     PRESCRIPTION_COOLDOWN_SECONDS,
-    # Hardcoded-rule thresholds
-    PRESCRIPTION_LOW_BLINK_THRESHOLD,
-    PRESCRIPTION_HIGH_SQUINT_THRESHOLD,
-    PRESCRIPTION_CLOSE_DISTANCE_THRESHOLD,
-    PRESCRIPTION_HIGH_ENTROPY_THRESHOLD,
-    PRESCRIPTION_CRITICAL_SCORE,
 )
 
 logger = logging.getLogger(__name__)
@@ -50,34 +44,44 @@ USE_GROQ: bool = os.environ.get("GAZEAWARE_USE_GROQ", "true").strip().lower() no
 )
 
 
-# ── Prescription definitions (hardcoded fallback) ─────────────────────────────
-_PRESCRIPTIONS = {
-    "low_blink": {
-        "title":  "BLINK EXERCISE",
-        "text":   "CLOSE EYES FULLY, HOLD 3 SECONDS, REPEAT 10 TIMES",
-        "signal": "blink_rate",
-    },
-    "high_squint": {
-        "title":  "RELAX EYES",
-        "text":   "RELAX JAW AND FOREHEAD, LOOK AWAY FROM SCREEN NOW",
-        "signal": "squint",
-    },
-    "too_close": {
-        "title":  "DISTANCE CHECK",
-        "text":   "LEAN BACK, INCREASE DISTANCE TO AT LEAST 50CM",
-        "signal": "screen_distance",
-    },
-    "gaze_entropy": {
-        "title":  "FOCUS DRILL",
-        "text":   "PICK ONE POINT 6 METERS AWAY, HOLD GAZE FOR 20 SECONDS",
-        "signal": "gaze_entropy",
-    },
-    "critical_palming": {
-        "title":  "PALMING — CRITICAL STRAIN",
-        "text":   "COVER EYES WITH WARM PALMS FOR 45 SECONDS — PALMING NOW",
-        "signal": None,
-    },
-}
+# ── Prescription rules (hardcoded fallback) ──────────────────────────────────
+# Each tuple: (priority, signal_key, threshold, prescription_text)
+# __score__   → compared against the strain score directly
+# __default__ → unconditional fallback (always matches)
+# First matching rule wins (lowest priority number).
+RULES = [
+    # Critical score
+    (1,  "__score__",       90,
+     "COVER EYES WITH WARM PALMS — HOLD 45 SECONDS. PALMING NOW."),
+    (2,  "__score__",       80,
+     "LOOK AWAY FROM SCREEN. FOCUS ON SOMETHING 6 METERS AWAY FOR 30 SECONDS."),
+    # Blink issues
+    (3,  "blink_rate",      0.60,
+     "YOUR BLINK RATE IS CRITICALLY LOW. CLOSE EYES FULLY 15 TIMES NOW."),
+    (4,  "blink_rate",      0.40,
+     "BLINK SLOWLY AND FULLY — CLOSE, HOLD 2 SECONDS, OPEN. REPEAT 10 TIMES."),
+    (5,  "blink_quality",   0.70,
+     "YOU ARE NOT BLINKING FULLY. SQUEEZE EYES SHUT FIRMLY 10 TIMES."),
+    # Distance and posture
+    (6,  "screen_distance", 0.65,
+     "YOU ARE TOO CLOSE TO THE SCREEN. LEAN BACK TO AT LEAST 60CM NOW."),
+    (7,  "posture_lean",    0.60,
+     "YOUR POSTURE IS POOR. SIT UPRIGHT, SHOULDERS BACK, CHIN LEVEL."),
+    # Squint and gaze
+    (8,  "squint",          0.60,
+     "RELAX YOUR FACE MUSCLES. DROP JAW, UNCLENCH FOREHEAD, BREATHE OUT."),
+    (9,  "gaze_entropy",    0.70,
+     "YOUR GAZE IS SCATTERED. PICK ONE POINT 6M AWAY AND HOLD FOR 20 SECONDS."),
+    # Eye rubbing
+    (10, "eye_rubbing",     0.50,
+     "STOP RUBBING YOUR EYES. HANDS DOWN. BLINK SLOWLY 5 TIMES INSTEAD."),
+    # Scleral redness
+    (11, "scleral_redness", 0.60,
+     "EYE REDNESS DETECTED. LOOK AWAY FROM SCREEN AND REST EYES FOR 2 MINUTES."),
+    # Default fallback
+    (12, "__default__",     0,
+     "TAKE A 20-SECOND BREAK. LOOK 20 FEET AWAY. BLINK FULLY 10 TIMES."),
+]
 
 
 class PrescriptionEngine:
@@ -222,42 +226,90 @@ class PrescriptionEngine:
 
     # ─────────────────────────────────────────────────────────────────────────
     def _select_hardcoded(self, score: float, signals: dict) -> dict:
-        """Pick prescription based on dominant signal or score (Phase 1 rules)."""
+        """Pick prescription dict using the RULES list (Phase 1 fallback)."""
+        text = self._pick_prescription(score, signals)
+        triggered = self._dominant_signal(signals)
+        return {
+            "key":               "hardcoded",
+            "title":             "PRESCRIPTION",
+            "text":              text,
+            "triggered_signals": [triggered],
+        }
 
-        # Rule 5: Critical palming — score ≥ 90 always wins
-        if score >= PRESCRIPTION_CRITICAL_SCORE:
-            p = _PRESCRIPTIONS["critical_palming"].copy()
-            p["triggered_signals"] = ["strain_score_critical"]
-            return p
+    # ─────────────────────────────────────────────────────────────────────────
+    def _pick_prescription(self, score: float, signals: dict) -> str:
+        """
+        Walk RULES in priority order and return the text of the first match.
 
-        # Rule 1: Low blink rate
-        if signals.get("blink_rate", 0.0) >= PRESCRIPTION_LOW_BLINK_THRESHOLD:
-            p = _PRESCRIPTIONS["low_blink"].copy()
-            p["triggered_signals"] = ["blink_rate"]
-            return p
+        Rule matching:
+          __score__   → rule fires when score >= threshold
+          __default__ → unconditional fallback (always fires)
+          other key   → rule fires when signals[key] >= threshold
+        """
+        for _priority, key, threshold, text in RULES:
+            if key == "__score__":
+                if score >= threshold:
+                    return text
+            elif key == "__default__":
+                return text
+            else:
+                if signals.get(key, 0.0) >= threshold:
+                    return text
+        # Should never reach here — __default__ always catches
+        return RULES[-1][3]
 
-        # Rule 2: High squint
-        if signals.get("squint", 0.0) >= PRESCRIPTION_HIGH_SQUINT_THRESHOLD:
-            p = _PRESCRIPTIONS["high_squint"].copy()
-            p["triggered_signals"] = ["squint"]
-            return p
+    # ─────────────────────────────────────────────────────────────────────────
+    def _log_to_db(
+        self,
+        score: float,
+        signals: dict,
+        text: str,
+        context: str = "screen",
+    ) -> None:
+        """
+        Write a prescription record to the DB prescriptions table.
+        Used by both _save() (via maybe_prescribe) and force_fire().
+        """
+        db = SessionLocal()
+        try:
+            row = DBPrescription(
+                session_id=self._session_id,
+                timestamp=datetime.now(timezone.utc),
+                strain_score=score,
+                context=context,
+                triggered_signals=json.dumps(signals),
+                prescription_text=text,
+                recovery_confirmed=0,
+                recovery_time_seconds=None,
+            )
+            db.add(row)
+            db.commit()
+            db.refresh(row)
+            self._last_prescription_db_id = row.id
+        finally:
+            db.close()
 
-        # Rule 3: Too close to screen
-        if signals.get("screen_distance", 0.0) >= PRESCRIPTION_CLOSE_DISTANCE_THRESHOLD:
-            p = _PRESCRIPTIONS["too_close"].copy()
-            p["triggered_signals"] = ["screen_distance"]
-            return p
-
-        # Rule 4: High gaze entropy
-        if signals.get("gaze_entropy", 0.0) >= PRESCRIPTION_HIGH_ENTROPY_THRESHOLD:
-            p = _PRESCRIPTIONS["gaze_entropy"].copy()
-            p["triggered_signals"] = ["gaze_entropy"]
-            return p
-
-        # Default: general blink exercise
-        p = _PRESCRIPTIONS["low_blink"].copy()
-        p["triggered_signals"] = ["general_strain"]
-        return p
+    # ─────────────────────────────────────────────────────────────────────────
+    def force_fire(self, score: float, signals: dict) -> str:
+        """
+        Always produces a prescription immediately.
+        Bypasses all gates and cooldowns.
+        Logs to DB same as a normal prescription.
+        Returns the prescription text string.
+        """
+        text = self._pick_prescription(score, signals)
+        try:
+            self._log_to_db(
+                score=score,
+                signals=signals,
+                text=text,
+                context="FORCED_VIA_DASHBOARD",
+            )
+        except Exception as e:
+            print(f"  [RX] DB log failed: {e}")
+        # Reset cooldown so natural triggers still work after this
+        self._last_prescription_time = 0.0
+        return text
 
     # ─────────────────────────────────────────────────────────────────────────
     @staticmethod
@@ -297,27 +349,13 @@ class PrescriptionEngine:
         strain_score: float,
         signal_values: dict,
     ) -> None:
-        """Persist prescription record to SQLite."""
-        db = SessionLocal()
-        try:
-            row = DBPrescription(
-                session_id=self._session_id,
-                timestamp=datetime.now(timezone.utc),
-                strain_score=strain_score,
-                context=prescription.get("context", "screen"),
-                triggered_signals=json.dumps(
-                    prescription.get("triggered_signals", [])
-                ),
-                prescription_text=prescription["text"],
-                recovery_confirmed=0,
-                recovery_time_seconds=None,
-            )
-            db.add(row)
-            db.commit()
-            db.refresh(row)
-            self._last_prescription_db_id = row.id
-        finally:
-            db.close()
+        """Persist prescription record to SQLite (delegates to _log_to_db)."""
+        self._log_to_db(
+            score=strain_score,
+            signals=signal_values,
+            text=prescription["text"],
+            context=prescription.get("context", "screen"),
+        )
 
     # ─────────────────────────────────────────────────────────────────────────
     @property

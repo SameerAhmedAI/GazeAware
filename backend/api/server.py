@@ -145,6 +145,91 @@ async def report_weekly() -> list:
         db.close()
 
 
+@app.get("/report/session_summary")
+async def session_summary() -> dict:
+    """
+    Compute a live session summary from signal_logs and prescriptions tables.
+    """
+    db = SessionLocal()
+    try:
+        from sqlalchemy import text
+
+        # Total sessions
+        sessions = db.execute(
+            text("SELECT id, start_time, end_time, "
+                 "peak_strain_score, avg_strain_score "
+                 "FROM sessions ORDER BY id DESC LIMIT 20")
+        ).fetchall()
+
+        # Prescription counts by type
+        rx_rows = db.execute(
+            text("SELECT context, COUNT(*) as cnt "
+                 "FROM prescriptions GROUP BY context")
+        ).fetchall()
+
+        # Acuity results
+        acuity_rows = db.execute(
+            text("SELECT snellen_fraction, last_row_passed, "
+                 "timestamp FROM acuity_logs ORDER BY id DESC")
+        ).fetchall()
+
+        # Signal averages across all logs
+        signal_avgs = db.execute(
+            text("SELECT "
+                 "AVG(strain_score) as avg_strain, "
+                 "MAX(strain_score) as peak_strain, "
+                 "AVG(blink_rate) as avg_blink, "
+                 "AVG(squint_ratio) as avg_squint, "
+                 "AVG(screen_distance) as avg_dist "
+                 "FROM signal_logs")
+        ).fetchone()
+
+        session_list = []
+        for s in sessions:
+            session_list.append({
+                "id":         s[0],
+                "start_time": str(s[1]),
+                "end_time":   str(s[2]) if s[2] else None,
+                "peak_strain": round(s[3] or 0, 1),
+                "avg_strain":  round(s[4] or 0, 1),
+            })
+
+        rx_by_type = {}
+        for r in rx_rows:
+            context = r[0] or "AUTO"
+            if context == "FORCED_VIA_DASHBOARD":
+                rx_by_type["forced"] = r[1]
+            elif str(context).startswith("ACUITY_TEST"):
+                rx_by_type["acuity"] = r[1]
+            else:
+                rx_by_type["auto"] = r[1]
+
+        acuity_list = []
+        for a in acuity_rows:
+            acuity_list.append({
+                "fraction":  a[0],
+                "last_row":  a[1],
+                "timestamp": str(a[2]),
+            })
+
+        return {
+            "sessions":       session_list,
+            "rx_by_type":     rx_by_type,
+            "acuity_results": acuity_list,
+            "signal_averages": {
+                "avg_strain":  round(float(signal_avgs[0] or 0), 1),
+                "peak_strain": round(float(signal_avgs[1] or 0), 1),
+                "avg_blink":   round(float(signal_avgs[2] or 0), 3),
+                "avg_squint":  round(float(signal_avgs[3] or 0), 3),
+                "avg_dist":    round(float(signal_avgs[4] or 0), 3),
+            },
+        }
+    except Exception as exc:
+        return {"error": str(exc)}
+    finally:
+        db.close()
+
+
 # ── Action endpoints ───────────────────────────────────────────────────────────
 
 @app.post("/actions/force_prescription")

@@ -10,6 +10,7 @@ export const api = {
   getAcuityHistory: () => fetch(`${BASE}/history/acuity`).then(r => r.json()),
   getDegradation:   () => fetch(`${BASE}/report/degradation`).then(r => r.json()),
   getWeeklyReport:  () => fetch(`${BASE}/report/weekly`).then(r => r.json()),
+  getSessionSummary: () => fetch(`${BASE}/report/session_summary`).then(r => r.json()),
 
   // ── Action endpoints (POST) ────────────────────────────────────────────────
   // NOTE: These POST endpoints don't exist in the backend yet.

@@ -78,6 +78,81 @@ SNELLEN_NUMERIC: dict[str, float] = {
 }
 
 
+def get_acuity_tier(last_row_passed: int, fraction: str) -> dict:
+    """
+    Map acuity test result to a severity tier with label, color, and
+    prescription text.
+    Returns dict with keys: tier, label, color, prescription
+    """
+    if last_row_passed == 0 or fraction == "NONE":
+        return {
+            "tier": 1,
+            "label": "CRITICAL — TEST INCOMPLETE",
+            "color": (0, 0, 220),
+            "prescription": (
+                "You could not read any rows of the chart. This may indicate "
+                "a serious vision problem. Please schedule an urgent appointment "
+                "with an ophthalmologist immediately."
+            ),
+        }
+    elif last_row_passed in [1, 2]:
+        return {
+            "tier": 2,
+            "label": "SEVERE VISION IMPAIRMENT",
+            "color": (0, 0, 200),
+            "prescription": (
+                "Your vision is severely impaired (20/200 to 20/100). You should "
+                "see an eye doctor as soon as possible. Avoid prolonged screen use "
+                "until assessed. Consider increasing font sizes and screen contrast "
+                "immediately."
+            ),
+        }
+    elif last_row_passed in [3, 4]:
+        return {
+            "tier": 3,
+            "label": "MODERATE VISION REDUCTION",
+            "color": (0, 140, 255),
+            "prescription": (
+                "Your vision shows moderate reduction. Book an eye examination "
+                "within the next 2-4 weeks. Take a 10-minute screen break every "
+                "hour. Ensure your screen is at least 60cm away and reduce "
+                "brightness by 30 percent."
+            ),
+        }
+    elif last_row_passed in [5, 6]:
+        return {
+            "tier": 4,
+            "label": "MILD VISION REDUCTION",
+            "color": (0, 180, 255),
+            "prescription": (
+                "Your vision is slightly below normal. Consider an eye check at "
+                "your next convenience. Follow the 20-20-20 rule: every 20 minutes, "
+                "look at something 20 feet away for 20 seconds. Ensure good "
+                "lighting when reading."
+            ),
+        }
+    elif last_row_passed == 7:
+        return {
+            "tier": 5,
+            "label": "NEAR-NORMAL VISION",
+            "color": (30, 160, 30),
+            "prescription": (
+                "Your vision is near-normal. Continue regular eye care habits. "
+                "Use the 20-20-20 rule and take regular screen breaks."
+            ),
+        }
+    else:  # last_row_passed == 8
+        return {
+            "tier": 6,
+            "label": "NORMAL VISION",
+            "color": (20, 200, 20),
+            "prescription": (
+                "Your vision is normal (20/20). Maintain good screen habits "
+                "and get a routine eye check every 1-2 years."
+            ),
+        }
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 class AcuityTest:
     """
@@ -279,38 +354,54 @@ class AcuityTest:
                       last_row: int, cheat: bool, squint: bool) -> None:
         h, w = canvas.shape[:2]
         self._draw_background(canvas)
-        self._draw_text_centred(canvas, "Test Complete", 100, 1.3, 2,
+
+        tier = get_acuity_tier(last_row, fraction)
+
+        self._draw_text_centred(canvas, "Test Complete", 70, 1.2, 2,
                                   (40, 120, 200))
         self._draw_text_centred(canvas,
-                                  f"Estimated Vision:  {fraction}",
-                                  200, 1.0, 2, (20, 160, 20))
-        snellen_desc = {
-            "20/20": "Normal vision", "20/25": "Near-normal",
-            "20/30": "Slightly reduced", "20/40": "Mild reduction",
-            "20/50": "Moderate reduction", "20/70": "Moderate-Severe",
-            "20/100": "Severe reduction", "20/200": "Very low vision",
-            "NONE": "Could not complete test",
-        }
-        self._draw_text_centred(canvas,
-                                  snellen_desc.get(fraction, ""),
-                                  260, 0.75, 1, (80, 80, 80))
+                                  f"Result:  {fraction}",
+                                  140, 1.0, 2, tier["color"])
+        self._draw_text_centred(canvas, tier["label"],
+                                  200, 0.75, 2, tier["color"])
 
-        warning_y = 330
+        # Prescription — word-wrap at 65 chars per line
+        cv2.line(canvas, (0, 225), (w, 225), (200, 200, 200), 1)
+        prescription = tier["prescription"]
+        words = prescription.split()
+        lines = []
+        current = ""
+        for word in words:
+            if len(current) + len(word) + 1 <= 65:
+                current = (current + " " + word).strip()
+            else:
+                lines.append(current)
+                current = word
+        if current:
+            lines.append(current)
+
+        y = 265
+        for line in lines:
+            self._draw_text_centred(canvas, line, y, 0.55, 1, (50, 50, 50))
+            y += 28
+
+        # Warnings
+        warning_y = max(y + 10, h - 120)
         if cheat:
             self._draw_text_centred(canvas,
-                                      "  Cheat detected: you leaned forward",
-                                      warning_y, 0.65, 1, (0, 50, 220))
-            warning_y += 40
+                                      "Warning: forward lean detected",
+                                      warning_y, 0.60, 1, (0, 50, 220))
+            warning_y += 35
         if squint:
             self._draw_text_centred(canvas,
-                                      "  Squinting detected during test",
-                                      warning_y, 0.65, 1, (0, 140, 255))
+                                      "Warning: squinting detected",
+                                      warning_y, 0.60, 1, (0, 120, 255))
 
         self._draw_text_centred(canvas, "Result saved to database.",
-                                  h - 80, 0.60, 1, (80, 80, 80))
+                                  h - 55, 0.55, 1, (80, 80, 80))
         self._draw_text_centred(canvas,
                                   "Press any key or wait 5 s to return",
-                                  h - 40, 0.60, 1, (130, 130, 130))
+                                  h - 25, 0.55, 1, (130, 130, 130))
 
     # ── DB logging ────────────────────────────────────────────────────────────
     def _log_result(self, fraction: str, last_row: int, distance_cm: float,
@@ -522,6 +613,40 @@ class AcuityTest:
         # Log to DB
         self._log_result(final_fraction, last_row_passed, dist_avg,
                           cheat_detected, squint_detected)
+
+        # Log acuity prescription to prescriptions table
+        try:
+            tier = get_acuity_tier(last_row_passed, final_fraction)
+            from backend.database.db import SessionLocal
+            from backend.database.models import Prescription as DBPrescription
+            import json
+            db = SessionLocal()
+            try:
+                rx_row = DBPrescription(
+                    session_id        = self.session_id,
+                    timestamp         = datetime.now(timezone.utc),
+                    strain_score      = 0.0,
+                    context           = f"ACUITY_TEST ({final_fraction})",
+                    triggered_signals = json.dumps({
+                        "snellen_fraction": final_fraction,
+                        "last_row_passed":  last_row_passed,
+                        "tier":             tier["tier"],
+                        "cheat_detected":   cheat_detected,
+                        "squint_detected":  squint_detected,
+                    }),
+                    prescription_text  = tier["prescription"],
+                    recovery_confirmed = 0,
+                )
+                db.add(rx_row)
+                db.commit()
+                print(f"  [AcuityTest] Prescription logged — Tier {tier['tier']}: {tier['label']}")
+            except Exception as exc:
+                print(f"  [AcuityTest] Prescription DB warning: {exc}")
+                db.rollback()
+            finally:
+                db.close()
+        except Exception as exc:
+            print(f"  [AcuityTest] Prescription log failed: {exc}")
 
         # Wait 5 s or any key press
         start_wait = time.time()
