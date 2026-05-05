@@ -32,4 +32,5 @@ state = {
     "action_force_prescription": False,
     "action_trigger_acuity":     False,
     "action_trigger_tfsi":       False,
+    "action_trigger_recovery":   False,   # Manual forced-recovery (ball tracking)
 }

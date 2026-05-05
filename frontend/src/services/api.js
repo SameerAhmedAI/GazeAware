@@ -22,4 +22,7 @@ export const api = {
 
   triggerTFSI: () => fetch(`${BASE}/actions/trigger_tfsi`,
     { method: 'POST' }).then(r => r.json()),
+
+  triggerRecovery: () => fetch(`${BASE}/actions/trigger_recovery`,
+    { method: 'POST' }).then(r => r.json()),
 }

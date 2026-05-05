@@ -180,6 +180,22 @@ async def trigger_tfsi() -> dict:
     }
 
 
+@app.post("/actions/trigger_recovery")
+async def trigger_recovery() -> dict:
+    """
+    Manually trigger the forced-recovery ball-tracking overlay immediately,
+    regardless of the current strain level.  The main loop consumes this flag
+    on the next 500ms tick and calls overlays._trigger_forced_recovery().
+    """
+    _state.state["action_trigger_recovery"] = True
+    return {
+        "status":    "queued",
+        "action":    "trigger_recovery",
+        "message":   "Forced-recovery ball exercise will launch on next tick",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+
+
 # ── MJPEG camera feed ──────────────────────────────────────────────────────────
 
 def _generate_frames():

@@ -471,6 +471,19 @@ def main():
                     except Exception as e:
                         print(f"  [ACTION] TFSI check failed: {e}")
 
+                if _state.state.get("action_trigger_recovery"):
+                    _state.state["action_trigger_recovery"] = False
+                    try:
+                        print(f"\n  [ACTION] Manual recovery triggered from dashboard — launching ball exercise\n")
+                        # Bypass the strain threshold; call the internal method directly.
+                        # _trigger_forced_recovery guards against double-firing via _forced_active.
+                        if not overlays.forced_active:
+                            overlays._trigger_forced_recovery(current_score)
+                        else:
+                            print("  [ACTION] Recovery already active — ignoring duplicate request")
+                    except Exception as e:
+                        print(f"  [ACTION] Manual recovery failed: {e}")
+
                 # Push state to FastAPI
                 _crash = {
                     "will_crash":          False,

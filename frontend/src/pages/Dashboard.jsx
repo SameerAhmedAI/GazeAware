@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { Camera, AlertTriangle, TrendingDown, CheckCircle2, Activity, Wifi, WifiOff, Clock, Zap, Eye } from 'lucide-react'
+import { Camera, AlertTriangle, TrendingDown, CheckCircle2, Activity, Wifi, WifiOff, Clock, Zap, Eye, Wind } from 'lucide-react'
 import { useGazeSocket } from '../hooks/useGazeSocket.js'
 import { api } from '../services/api.js'
 import GlassCard from '../components/GlassCard.jsx'
@@ -748,6 +748,51 @@ export default function Dashboard() {
               : <Activity size={15} style={{ flexShrink: 0 }} />
             }
             Run TFSI Check
+          </button>
+
+          {/* Button 4 — Force Recovery (ball tracking) */}
+          <button
+            disabled={actionLoading === 'recovery'}
+            onClick={async () => {
+              setActionLoading('recovery')
+              try {
+                await api.triggerRecovery()
+                addToast('Recovery exercise launched in OpenCV window', 'success')
+              } catch (_) {
+                addToast('Recovery action failed — ensure backend is running', 'muted')
+              } finally { setActionLoading(null) }
+            }}
+            className="flex flex-1 items-center justify-center gap-2.5 rounded-xl text-sm font-medium transition-all duration-200"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              height: '52px',
+              padding: '0 20px',
+              background: 'rgba(0, 229, 255, 0.06)',
+              border: '1px solid rgba(0, 229, 255, 0.22)',
+              color: '#00e5ff',
+              fontFamily: 'var(--font-dm)',
+              cursor: actionLoading === 'recovery' ? 'wait' : 'pointer',
+              boxShadow: '0 2px 12px rgba(0,229,255,0.05)',
+              boxSizing: 'border-box',
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.background = 'rgba(0, 229, 255, 0.12)'
+              e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,229,255,0.18)'
+              e.currentTarget.style.borderColor = 'rgba(0, 229, 255, 0.42)'
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.background = 'rgba(0, 229, 255, 0.06)'
+              e.currentTarget.style.boxShadow = '0 2px 12px rgba(0,229,255,0.05)'
+              e.currentTarget.style.borderColor = 'rgba(0, 229, 255, 0.22)'
+            }}
+          >
+            {actionLoading === 'recovery'
+              ? <span className="w-4 h-4 rounded-full border-2 animate-spin" style={{ borderColor: '#00e5ff', borderTopColor: 'transparent' }} />
+              : <Wind size={15} style={{ flexShrink: 0 }} />
+            }
+            Force Recovery
           </button>
 
         </div>
