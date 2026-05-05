@@ -11,12 +11,35 @@ export default function ZoneBadge({ zone = 'GREEN', className = '' }) {
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold tracking-widest uppercase ${pulse} ${className}`}
-      style={{ color: s.color, background: s.bg, border: `1px solid ${s.border}` }}
+      className={`${pulse} ${className}`}
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '6px',
+        padding: '6px 14px',
+        borderRadius: '999px',
+        fontSize: '11px',
+        fontWeight: 700,
+        letterSpacing: '0.1em',
+        textTransform: 'uppercase',
+        whiteSpace: 'nowrap',
+        color: s.color,
+        background: s.bg,
+        border: `1px solid ${s.border}`,
+        boxSizing: 'border-box',
+        fontFamily: 'var(--font-mono)',
+      }}
     >
       <span
-        className="w-1.5 h-1.5 rounded-full"
-        style={{ background: s.color, boxShadow: `0 0 6px ${s.color}` }}
+        style={{
+          display: 'inline-block',
+          width: '6px',
+          height: '6px',
+          borderRadius: '50%',
+          background: s.color,
+          boxShadow: `0 0 6px ${s.color}`,
+          flexShrink: 0,
+        }}
       />
       {zone}
     </span>

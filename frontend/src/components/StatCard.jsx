@@ -1,33 +1,72 @@
 export default function StatCard({ icon: Icon, label, value, unit = '', color }) {
   return (
     <div
-      className="rounded-2xl p-6 flex flex-col gap-3 relative overflow-hidden"
-      style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}
+      style={{
+        borderRadius: '16px',
+        padding: '20px 24px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '12px',
+        position: 'relative',
+        overflow: 'hidden',
+        background: 'var(--bg-surface)',
+        border: '1px solid rgba(255,255,255,0.08)',
+        boxSizing: 'border-box',
+        minWidth: 0,
+      }}
     >
       {/* Background glow */}
       {color && (
         <div
-          className="absolute top-0 right-0 w-32 h-32 rounded-full pointer-events-none"
-          style={{ background: `radial-gradient(circle, ${color}18 0%, transparent 70%)`, transform: 'translate(30%, -30%)' }}
+          style={{
+            position: 'absolute',
+            top: 0,
+            right: 0,
+            width: '128px',
+            height: '128px',
+            borderRadius: '50%',
+            pointerEvents: 'none',
+            background: `radial-gradient(circle, ${color}18 0%, transparent 70%)`,
+            transform: 'translate(30%, -30%)',
+          }}
         />
       )}
       {Icon && (
-        <div className="flex items-center justify-between">
-          <span className="text-xs tracking-widest uppercase" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <span
+            style={{
+              fontSize: '10px',
+              fontWeight: 600,
+              letterSpacing: '0.12em',
+              textTransform: 'uppercase',
+              color: 'var(--text-muted)',
+              fontFamily: 'var(--font-mono)',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              flex: '1 1 0',
+              minWidth: 0,
+            }}
+          >
             {label}
           </span>
-          <Icon size={16} style={{ color: color || 'var(--text-muted)' }} />
+          <Icon size={16} style={{ color: color || 'var(--text-muted)', flexShrink: 0, marginLeft: '8px' }} />
         </div>
       )}
-      <div className="flex items-end gap-1">
+      <div style={{ display: 'flex', alignItems: 'flex-end', gap: '4px' }}>
         <span
-          className="text-3xl font-bold"
-          style={{ fontFamily: 'var(--font-mono)', color: color || 'var(--text-primary)' }}
+          style={{
+            fontFamily: 'var(--font-mono)',
+            fontSize: '28px',
+            fontWeight: 700,
+            color: color || 'var(--text-primary)',
+            lineHeight: 1,
+          }}
         >
           {value}
         </span>
         {unit && (
-          <span className="text-sm mb-1" style={{ color: 'var(--text-muted)' }}>{unit}</span>
+          <span style={{ fontSize: '14px', marginBottom: '2px', color: 'var(--text-muted)' }}>{unit}</span>
         )}
       </div>
     </div>

@@ -19,13 +19,63 @@ function Spinner() {
 
 function ErrorCard({ message, onRetry }) {
   return (
-    <div className="rounded-2xl p-6 flex flex-col items-center gap-4"
-      style={{ border: '1px solid rgba(239,68,68,0.25)', background: 'rgba(239,68,68,0.08)' }}>
-      <p className="text-sm" style={{ color: 'var(--zone-red)' }}>{message}</p>
-      <button onClick={onRetry}
-        className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm"
-        style={{ background: 'var(--bg-surface)', color: 'var(--text-primary)', border: '1px solid var(--border-default)' }}>
-        <RefreshCw size={13} /> Try again
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '16px',
+        padding: '64px 24px',
+        textAlign: 'center',
+        boxSizing: 'border-box',
+      }}
+    >
+      <p
+        style={{
+          fontFamily: 'var(--font-syne)',
+          fontSize: '18px',
+          fontWeight: 700,
+          color: 'var(--text-primary)',
+          margin: 0,
+        }}
+      >
+        Backend Not Running
+      </p>
+      <p
+        style={{
+          fontFamily: 'var(--font-dm)',
+          fontSize: '14px',
+          color: 'var(--text-muted)',
+          maxWidth: '360px',
+          lineHeight: 1.6,
+          margin: 0,
+        }}
+      >
+        Start the GazeAware application first, then refresh this page.
+      </p>
+      <button
+        onClick={onRetry}
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '8px',
+          padding: '10px 20px',
+          borderRadius: '12px',
+          fontSize: '14px',
+          fontFamily: 'var(--font-dm)',
+          fontWeight: 500,
+          cursor: 'pointer',
+          background: 'var(--bg-surface)',
+          color: 'var(--text-primary)',
+          border: '1px solid var(--border-default)',
+          boxSizing: 'border-box',
+          marginTop: '4px',
+          transition: 'background 0.2s',
+        }}
+      >
+        <RefreshCw size={14} />
+        Try again
       </button>
     </div>
   )
@@ -84,20 +134,41 @@ export default function Report() {
   const latest = weekRows[0] ?? {}
 
   return (
-    <div className="flex flex-col gap-6 p-6">
-      <div className="flex items-center gap-3">
-        <BarChart2 size={20} style={{ color: 'var(--accent-dim)' }} />
-        <h1 className="text-2xl font-bold" style={{ fontFamily: 'var(--font-syne)', color: 'var(--text-primary)' }}>
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '24px',
+        padding: '28px 24px 32px',
+        boxSizing: 'border-box',
+        minHeight: '100%',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '4px' }}>
+        <BarChart2 size={20} style={{ color: 'var(--accent-dim)', flexShrink: 0 }} />
+        <h1
+          style={{
+            fontFamily: 'var(--font-syne)',
+            fontSize: '22px',
+            fontWeight: 700,
+            color: 'var(--text-primary)',
+            margin: 0,
+          }}
+        >
           Weekly Report
         </h1>
       </div>
 
-      {/* Degradation banner */}
       <div
-        className="flex items-start gap-4 rounded-2xl px-6 py-5"
         style={{
+          display: 'flex',
+          alignItems: 'flex-start',
+          gap: '16px',
+          borderRadius: '16px',
+          padding: '20px 24px',
           background:  atRisk ? 'rgba(220,38,38,0.08)' : 'rgba(16,185,129,0.08)',
           border:      `1px solid ${atRisk ? 'rgba(220,38,38,0.3)' : 'rgba(16,185,129,0.25)'}`,
+          boxSizing: 'border-box',
         }}
       >
         {atRisk
@@ -122,7 +193,14 @@ export default function Report() {
       </div>
 
       {/* 4 stat cards */}
-      <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
+      <div
+        style={{
+          display: 'grid',
+          gap: '16px',
+          gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
+          boxSizing: 'border-box',
+        }}
+      >
         <StatCard
           icon={TrendingUp}
           label="Worst Day"
@@ -151,17 +229,19 @@ export default function Report() {
 
       {/* Weekly bar chart */}
       <GlassCard>
-        <div className="flex items-center justify-between mb-6">
-          <span className="text-xs tracking-widest uppercase" style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+          <span
+            style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-muted)' }}
+          >
             WEEKLY STRAIN OVERVIEW
           </span>
-          <span className="text-xs" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+          <span style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', fontSize: '12px' }}>
             Last {weekRows.length} week{weekRows.length !== 1 ? 's' : ''}
           </span>
         </div>
 
         {chartData.length === 0 ? (
-          <div className="flex flex-col items-center gap-2 py-12">
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', padding: '48px 0' }}>
             <BarChart2 size={24} style={{ color: 'var(--text-muted)' }} />
             <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>No weekly data yet</p>
           </div>

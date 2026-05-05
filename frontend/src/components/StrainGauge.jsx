@@ -1,9 +1,9 @@
-// 270° arc starting at 135° (bottom-left), sweeping clockwise to bottom-right
-const SIZE      = 280
+// 270° arc — scaled down from 280 to 200 so it fits in a 1fr grid column
+const SIZE      = 200
 const CX        = SIZE / 2
 const CY        = SIZE / 2
-const RADIUS    = 110
-const STROKE_W  = 12
+const RADIUS    = 78
+const STROKE_W  = 10
 const START_DEG = 135
 const SWEEP_DEG = 270
 
@@ -32,23 +32,49 @@ function getZoneColor(score) {
   return 'var(--zone-green)'
 }
 
+function getZoneGlowRgb(score) {
+  if (score >= 90) return '220, 38, 38'
+  if (score >= 71) return '239, 68, 68'
+  if (score >= 41) return '245, 158, 11'
+  return '16, 185, 129'
+}
+
 export default function StrainGauge({ score = 0 }) {
-  // All calculations inline — no caching that could prevent re-render updates
   const clampedScore = Math.min(100, Math.max(0, score))
   const fillPct      = clampedScore / 100
   const dashOffset   = CIRCUMFERENCE * (1 - fillPct)
   const color        = getZoneColor(clampedScore)
+  const glowRgb      = getZoneGlowRgb(clampedScore)
 
   console.log('[StrainGauge] score=', score, 'dashOffset=', dashOffset.toFixed(2))
 
   return (
-    <div className="flex items-center justify-center" style={{ width: SIZE, height: SIZE, position: 'relative' }}>
-      <svg width={SIZE} height={SIZE} style={{ overflow: 'visible' }}>
+    <div
+      style={{
+        width: SIZE,
+        height: SIZE,
+        position: 'relative',
+        flexShrink: 0,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      <svg width={SIZE} height={SIZE} style={{ overflow: 'visible', display: 'block' }}>
+        {/* Outer glow ring — subtle ambient bloom */}
+        <circle
+          cx={CX}
+          cy={CY}
+          r={RADIUS}
+          fill="none"
+          stroke={`rgba(${glowRgb}, 0.06)`}
+          strokeWidth={STROKE_W + 14}
+        />
         {/* Track */}
         <path
           d={TRACK_PATH}
           fill="none"
-          stroke="var(--bg-elevated)"
+          stroke="rgba(255, 255, 255, 0.05)"
           strokeWidth={STROKE_W}
           strokeLinecap="round"
         />
@@ -63,31 +89,46 @@ export default function StrainGauge({ score = 0 }) {
           strokeDashoffset={dashOffset}
           style={{
             transition: 'stroke-dashoffset 500ms ease-in-out, stroke 500ms ease-in-out',
-            filter: clampedScore > 50 ? `drop-shadow(0 0 8px ${color}80)` : 'none',
+            filter: `drop-shadow(0 0 ${clampedScore > 0 ? '8px' : '3px'} rgba(${glowRgb}, ${clampedScore > 10 ? '0.7' : '0.25'}))`,
           }}
         />
       </svg>
 
       {/* Center content */}
       <div
-        className="absolute inset-0 flex flex-col items-center justify-center"
-        style={{ gap: '4px' }}
+        style={{
+          position: 'absolute',
+          inset: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '4px',
+        }}
       >
         <span
-          className="font-bold leading-none"
           style={{
             fontFamily: 'var(--font-mono)',
-            fontSize: '52px',
+            fontSize: '44px',
+            fontWeight: 700,
+            lineHeight: 1,
             color,
-            textShadow: clampedScore > 70 ? `0 0 24px ${color}60` : 'none',
+            textShadow: `0 0 24px rgba(${glowRgb}, ${clampedScore > 0 ? '0.45' : '0.15'})`,
             transition: 'color 500ms ease-in-out, text-shadow 500ms ease-in-out',
+            letterSpacing: '-0.02em',
           }}
         >
           {Math.round(clampedScore)}
         </span>
         <span
-          className="text-xs tracking-widest uppercase"
-          style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}
+          style={{
+            color: 'rgba(255,255,255,0.35)',
+            fontFamily: 'var(--font-mono)',
+            fontSize: '9px',
+            fontWeight: 600,
+            letterSpacing: '0.25em',
+            textTransform: 'uppercase',
+          }}
         >
           STRAIN
         </span>

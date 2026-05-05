@@ -22,16 +22,62 @@ function Spinner() {
 function ErrorCard({ message, onRetry }) {
   return (
     <div
-      className="rounded-2xl p-6 flex flex-col items-center gap-4"
-      style={{ border: '1px solid var(--zone-red-border)', background: 'var(--zone-red-bg)' }}
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '16px',
+        padding: '64px 24px',
+        textAlign: 'center',
+        boxSizing: 'border-box',
+      }}
     >
-      <p className="text-sm" style={{ color: 'var(--zone-red)', fontFamily: 'var(--font-dm)' }}>{message}</p>
+      <p
+        style={{
+          fontFamily: 'var(--font-syne)',
+          fontSize: '18px',
+          fontWeight: 700,
+          color: 'var(--text-primary)',
+          margin: 0,
+        }}
+      >
+        Backend Not Running
+      </p>
+      <p
+        style={{
+          fontFamily: 'var(--font-dm)',
+          fontSize: '14px',
+          color: 'var(--text-muted)',
+          maxWidth: '360px',
+          lineHeight: 1.6,
+          margin: 0,
+        }}
+      >
+        Start the GazeAware application first, then refresh this page.
+      </p>
       <button
         onClick={onRetry}
-        className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm transition-all duration-200"
-        style={{ background: 'var(--bg-surface)', color: 'var(--text-primary)', border: '1px solid var(--border-default)', fontFamily: 'var(--font-dm)' }}
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '8px',
+          padding: '10px 20px',
+          borderRadius: '12px',
+          fontSize: '14px',
+          fontFamily: 'var(--font-dm)',
+          fontWeight: 500,
+          cursor: 'pointer',
+          background: 'var(--bg-surface)',
+          color: 'var(--text-primary)',
+          border: '1px solid var(--border-default)',
+          boxSizing: 'border-box',
+          marginTop: '4px',
+          transition: 'background 0.2s',
+        }}
       >
-        <RefreshCw size={13} /> Try again
+        <RefreshCw size={14} />
+        Try again
       </button>
     </div>
   )
@@ -94,34 +140,53 @@ export default function History() {
   }))
 
   return (
-    <div className="flex flex-col gap-6 p-6">
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '24px',
+        padding: '28px 24px 32px',
+        boxSizing: 'border-box',
+        minHeight: '100%',
+      }}
+    >
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <HistoryIcon size={20} style={{ color: 'var(--accent-dim)' }} />
-        <h1 className="text-2xl font-bold" style={{ fontFamily: 'var(--font-syne)', color: 'var(--text-primary)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '4px' }}>
+        <HistoryIcon size={20} style={{ color: 'var(--accent-dim)', flexShrink: 0 }} />
+        <h1
+          style={{
+            fontFamily: 'var(--font-syne)',
+            fontSize: '22px',
+            fontWeight: 700,
+            color: 'var(--text-primary)',
+            margin: 0,
+          }}
+        >
           Signal History
         </h1>
       </div>
 
       {/* Strain timeline */}
       <GlassCard>
-        <div className="flex items-center justify-between mb-6">
-          <span className="text-xs tracking-widest uppercase" style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+          <span
+            style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-muted)' }}
+          >
             STRAIN SCORE TIMELINE
           </span>
-          <span className="text-xs" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+          <span style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', fontSize: '12px' }}>
             {strainChartData.length} readings
           </span>
         </div>
 
         {strainChartData.length === 0 ? (
-          <div className="flex flex-col items-center gap-2 py-12">
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', padding: '48px 0' }}>
             <HistoryIcon size={24} style={{ color: 'var(--text-muted)' }} />
             <p style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-dm)', fontSize: '14px' }}>No signal history yet</p>
           </div>
         ) : (
-          <ResponsiveContainer width="100%" height={240}>
-            <LineChart data={strainChartData}>
+          <ResponsiveContainer width="100%" height={260}>
+            <LineChart data={strainChartData} margin={{ top: 4, right: 20, bottom: 24, left: 0 }}>
               <CartesianGrid stroke="var(--border-subtle)" strokeDasharray="4 4" />
               <XAxis dataKey="time" tick={{ fill: 'var(--text-muted)', fontFamily: 'var(--font-mono)', fontSize: 10 }} interval="preserveStartEnd" />
               <YAxis domain={[0, 100]} tick={{ fill: 'var(--text-muted)', fontFamily: 'var(--font-mono)', fontSize: 10 }} />
@@ -144,25 +209,33 @@ export default function History() {
 
       {/* Signal breakdown */}
       <GlassCard>
-        <div className="flex items-center justify-between mb-6">
-          <span className="text-xs tracking-widest uppercase" style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+          <span
+            style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-muted)' }}
+          >
             SIGNAL BREAKDOWN
           </span>
         </div>
 
         {signalChartData.length === 0 ? (
-          <div className="flex flex-col items-center gap-2 py-12">
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', padding: '48px 0' }}>
             <p style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-dm)', fontSize: '14px' }}>No data</p>
           </div>
         ) : (
-          <ResponsiveContainer width="100%" height={240}>
-            <AreaChart data={signalChartData}>
+          <ResponsiveContainer width="100%" height={260}>
+            <AreaChart data={signalChartData} margin={{ top: 4, right: 20, bottom: 24, left: 0 }}>
               <CartesianGrid stroke="var(--border-subtle)" strokeDasharray="4 4" />
               <XAxis dataKey="time" tick={{ fill: 'var(--text-muted)', fontFamily: 'var(--font-mono)', fontSize: 10 }} interval="preserveStartEnd" />
               <YAxis domain={[0, 1]} tick={{ fill: 'var(--text-muted)', fontFamily: 'var(--font-mono)', fontSize: 10 }} />
               <Tooltip content={<CustomTooltip />} />
               <Legend
-                wrapperStyle={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: 'var(--text-muted)', paddingTop: '12px' }}
+                wrapperStyle={{
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: '11px',
+                  color: 'var(--text-muted)',
+                  paddingTop: '20px',
+                  paddingBottom: '4px',
+                }}
               />
               <Area type="monotone" dataKey="blink_rate"    name="Blink Rate"    stroke="var(--zone-green)"  fill="rgba(16,185,129,0.08)"  strokeWidth={1.5} dot={false} />
               <Area type="monotone" dataKey="blink_quality" name="Blink Quality" stroke="var(--zone-yellow)" fill="rgba(245,158,11,0.08)"  strokeWidth={1.5} dot={false} />
@@ -174,17 +247,28 @@ export default function History() {
 
       {/* Prescription log */}
       <GlassCard>
-        <div className="flex items-center justify-between mb-6">
-          <span className="text-xs tracking-widest uppercase" style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+          <span
+            style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-muted)' }}
+          >
             PRESCRIPTION LOG
           </span>
-          <span className="text-xs" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+          <span style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', fontSize: '12px' }}>
             {prescriptions?.length ?? 0} total
           </span>
         </div>
 
         {!prescriptions?.length ? (
-          <div className="flex flex-col items-center gap-2 py-8">
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '12px',
+              padding: '40px 0 32px',
+            }}
+          >
             <CheckCircle size={22} style={{ color: 'var(--zone-green)' }} />
             <p style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-dm)', fontSize: '14px' }}>No prescriptions issued yet</p>
           </div>

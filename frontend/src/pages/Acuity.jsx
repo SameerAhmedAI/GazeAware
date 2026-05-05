@@ -20,13 +20,63 @@ function Spinner() {
 
 function ErrorCard({ message, onRetry }) {
   return (
-    <div className="rounded-2xl p-6 flex flex-col items-center gap-4"
-      style={{ border: '1px solid rgba(239,68,68,0.25)', background: 'rgba(239,68,68,0.08)' }}>
-      <p className="text-sm" style={{ color: 'var(--zone-red)' }}>{message}</p>
-      <button onClick={onRetry}
-        className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm"
-        style={{ background: 'var(--bg-surface)', color: 'var(--text-primary)', border: '1px solid var(--border-default)' }}>
-        <RefreshCw size={13} /> Try again
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '16px',
+        padding: '64px 24px',
+        textAlign: 'center',
+        boxSizing: 'border-box',
+      }}
+    >
+      <p
+        style={{
+          fontFamily: 'var(--font-syne)',
+          fontSize: '18px',
+          fontWeight: 700,
+          color: 'var(--text-primary)',
+          margin: 0,
+        }}
+      >
+        Backend Not Running
+      </p>
+      <p
+        style={{
+          fontFamily: 'var(--font-dm)',
+          fontSize: '14px',
+          color: 'var(--text-muted)',
+          maxWidth: '360px',
+          lineHeight: 1.6,
+          margin: 0,
+        }}
+      >
+        Start the GazeAware application first, then refresh this page.
+      </p>
+      <button
+        onClick={onRetry}
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '8px',
+          padding: '10px 20px',
+          borderRadius: '12px',
+          fontSize: '14px',
+          fontFamily: 'var(--font-dm)',
+          fontWeight: 500,
+          cursor: 'pointer',
+          background: 'var(--bg-surface)',
+          color: 'var(--text-primary)',
+          border: '1px solid var(--border-default)',
+          boxSizing: 'border-box',
+          marginTop: '4px',
+          transition: 'background 0.2s',
+        }}
+      >
+        <RefreshCw size={14} />
+        Try again
       </button>
     </div>
   )
@@ -89,10 +139,27 @@ export default function Acuity() {
   }))
 
   return (
-    <div className="flex flex-col gap-6 p-6">
-      <div className="flex items-center gap-3">
-        <Eye size={20} style={{ color: 'var(--accent-dim)' }} />
-        <h1 className="text-2xl font-bold" style={{ fontFamily: 'var(--font-syne)', color: 'var(--text-primary)' }}>
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '24px',
+        padding: '28px 24px 32px',
+        boxSizing: 'border-box',
+        minHeight: '100%',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '4px' }}>
+        <Eye size={20} style={{ color: 'var(--accent-dim)', flexShrink: 0 }} />
+        <h1
+          style={{
+            fontFamily: 'var(--font-syne)',
+            fontSize: '22px',
+            fontWeight: 700,
+            color: 'var(--text-primary)',
+            margin: 0,
+          }}
+        >
           Visual Acuity
         </h1>
       </div>
@@ -143,16 +210,20 @@ export default function Acuity() {
       )}
 
       <GlassCard>
-        <span className="text-xs tracking-widest uppercase block mb-6" style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>
-          ACUITY TREND
-        </span>
+        <div style={{ marginBottom: '20px' }}>
+          <span
+            style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', letterSpacing: '0.12em', textTransform: 'uppercase', display: 'block', color: 'var(--text-muted)' }}
+          >
+            ACUITY TREND
+          </span>
+        </div>
         {chartData.length === 0 ? (
           <div className="flex flex-col items-center gap-2 py-12">
             <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>No trend data</p>
           </div>
         ) : (
-          <ResponsiveContainer width="100%" height={220}>
-            <LineChart data={chartData}>
+          <ResponsiveContainer width="100%" height={240}>
+            <LineChart data={chartData} margin={{ top: 4, right: 20, bottom: 24, left: 0 }}>
               <CartesianGrid stroke="var(--border-subtle)" strokeDasharray="4 4" />
               <XAxis dataKey="time" tick={{ fill: 'var(--text-muted)', fontFamily: 'var(--font-mono)', fontSize: 10 }} />
               <YAxis domain={[0, 1.1]} tick={{ fill: 'var(--text-muted)', fontFamily: 'var(--font-mono)', fontSize: 10 }} />
@@ -166,19 +237,29 @@ export default function Acuity() {
         )}
       </GlassCard>
 
-      <div className="flex items-start gap-3 rounded-2xl px-5 py-4"
-        style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)' }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'flex-start',
+          gap: '12px',
+          borderRadius: '16px',
+          padding: '16px 20px',
+          background: 'rgba(245,158,11,0.08)',
+          border: '1px solid rgba(245,158,11,0.25)',
+          boxSizing: 'border-box',
+        }}
+      >
         <AlertCircle size={16} style={{ color: 'var(--zone-yellow)', marginTop: '2px', flexShrink: 0 }} />
-        <p className="text-sm" style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-dm)', lineHeight: 1.6 }}>
+        <p style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-dm)', lineHeight: 1.6, fontSize: '14px', margin: 0 }}>
           Press <strong style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-primary)' }}>A</strong> while
           the OpenCV window OR trigger it manually from the dashboard to start the test.
         </p>
       </div>
 
       <GlassCard>
-        <div className="flex items-center justify-between mb-6">
-          <span className="text-xs tracking-widest uppercase" style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>ALL RESULTS</span>
-          <span className="text-xs" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>{results.length} tests</span>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>ALL RESULTS</span>
+          <span style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', fontSize: '12px' }}>{results.length} tests</span>
         </div>
         {results.length === 0 ? (
           <div className="py-8 text-center">

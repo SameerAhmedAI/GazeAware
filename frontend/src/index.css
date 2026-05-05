@@ -88,6 +88,21 @@
   100% { background-position: 200% 0; }
 }
 
+@keyframes pulse-dot-red {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.6); }
+  50% { opacity: 0.65; box-shadow: 0 0 0 4px rgba(239, 68, 68, 0); }
+}
+
+@keyframes camera-dash-pulse {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 0.75; }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
@@ -112,12 +127,15 @@ body {
 ::-webkit-scrollbar-thumb { background: var(--border-active); border-radius: 2px; }
 
 /* Animations as utility classes */
-.animate-pulse-critical { animation: pulse-critical 2s infinite; }
-.animate-pulse-live { animation: pulse-live 1.5s infinite; }
-.animate-fade-in-up { animation: fade-in-up 0.5s ease-out both; }
-.animate-number-glow { animation: number-glow 2s infinite; }
-.animate-spin-ring { animation: spin-ring 1s linear infinite; }
-.animate-slide-in-right { animation: slide-in-right 0.4s ease-out both; }
+.animate-pulse-critical    { animation: pulse-critical 2s infinite; }
+.animate-pulse-live        { animation: pulse-live 1.5s infinite; }
+.animate-fade-in-up        { animation: fade-in-up 0.5s ease-out both; }
+.animate-number-glow       { animation: number-glow 2s infinite; }
+.animate-spin-ring         { animation: spin-ring 1s linear infinite; }
+.animate-slide-in-right    { animation: slide-in-right 0.4s ease-out both; }
+.animate-pulse-dot-red     { animation: pulse-dot-red 1.5s ease-in-out infinite; }
+.animate-camera-dash-pulse { animation: camera-dash-pulse 2s ease-in-out infinite; }
+.animate-fade-in           { animation: fade-in 0.3s ease-out both; }
 
 /* Recharts overrides */
 .recharts-tooltip-wrapper .recharts-default-tooltip {

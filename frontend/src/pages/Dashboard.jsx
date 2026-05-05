@@ -75,23 +75,36 @@ function CameraFeed() {
         />
       ) : (
         <div
-          className="flex flex-col items-center justify-center gap-3 rounded-xl"
+          className="flex flex-col items-center justify-center animate-camera-dash-pulse"
           style={{
-            height: '160px',
-            background: 'var(--bg-elevated)',
-            border: '1px solid var(--border-subtle)',
+            minHeight: '160px',
+            padding: '24px 16px',
+            gap: '12px',
+            background: 'rgba(255,255,255,0.01)',
+            border: '1px dashed rgba(255,255,255,0.18)',
+            borderRadius: '12px',
+            boxSizing: 'border-box',
           }}
         >
-          <Camera size={32} style={{ color: 'var(--text-muted)' }} />
+          <Camera size={28} style={{ color: 'rgba(255,255,255,0.2)' }} />
           <p className="text-sm"
             style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-dm)' }}>
             Feed available in OpenCV window
           </p>
-          <p className="text-xs"
-            style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-mono)',
-              opacity: 0.5 }}>
-            localhost:8000 — OpenCV
-          </p>
+          <span
+            style={{
+              fontFamily: 'var(--font-mono)',
+              fontSize: '11px',
+              color: 'var(--text-muted)',
+              background: 'rgba(255,255,255,0.05)',
+              border: '1px solid rgba(255,255,255,0.1)',
+              borderRadius: '6px',
+              padding: '2px 10px',
+              letterSpacing: '0.04em',
+            }}
+          >
+            localhost:8000 → OpenCV
+          </span>
         </div>
       )}
     </GlassCard>
@@ -182,12 +195,22 @@ function TFSICard({ stability }) {
         </span>
         {atRisk && (
           <span
-            className="text-xs px-2 py-0.5 rounded-full animate-pulse-live"
+            className="animate-pulse-live"
             style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              padding: '5px 12px',
+              borderRadius: '999px',
               fontFamily: 'var(--font-mono)',
+              fontSize: '10px',
+              fontWeight: 700,
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+              whiteSpace: 'nowrap',
               color: 'var(--zone-critical)',
               background: 'var(--zone-critical-bg)',
               border: '1px solid var(--zone-critical-border)',
+              boxSizing: 'border-box',
             }}
           >
             AUTO-ALERT RISK
@@ -247,7 +270,10 @@ function SignalMonitor({ signalsData }) {
         </span>
       </div>
 
-      <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+      <div
+        className="grid gap-3"
+        style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}
+      >
         {SIGNAL_KEYS.map(({ key, label }) => (
           <SignalBar
             key={key}
@@ -259,25 +285,43 @@ function SignalMonitor({ signalsData }) {
 
       {/* Supplementary */}
       <div
-        className="flex flex-wrap gap-6 pt-4"
-        style={{ borderTop: '1px solid var(--border-subtle)' }}
+        style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: '8px 32px',
+          paddingTop: '20px',
+          paddingLeft: '4px',
+          borderTop: '1px solid var(--border-subtle)',
+          marginTop: '8px',
+        }}
       >
-        <div className="flex items-center gap-3">
-          <span className="text-xs" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>Lighting Score</span>
-          <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <span style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', fontSize: '12px' }}>Lighting Score</span>
+          <span style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)', fontSize: '12px', fontWeight: 500 }}>
             {typeof lightingScore === 'number' ? lightingScore.toFixed(1) : '—'}
           </span>
         </div>
-        <div className="flex items-center gap-3">
-          <span className="text-xs" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>Distance Drift</span>
-          <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <span style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', fontSize: '12px' }}>Distance Drift</span>
+          <span style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)', fontSize: '12px', fontWeight: 500 }}>
             {typeof distanceDrift === 'number' ? `${distanceDrift.toFixed(1)} cm` : '—'}
           </span>
         </div>
         {signalsData?.modifiers && (
-          <div className="flex items-center gap-3">
-            <span className="text-xs" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>Modifiers</span>
-            <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: '1 1 auto' }}>
+            <span style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', fontSize: '12px', flexShrink: 0 }}>Modifiers</span>
+            <span
+              style={{
+                color: 'var(--text-secondary)',
+                fontFamily: 'var(--font-mono)',
+                fontSize: '12px',
+                fontWeight: 500,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                minWidth: 0,
+              }}
+            >
               {JSON.stringify(signalsData.modifiers)}
             </span>
           </div>
@@ -372,15 +416,18 @@ export default function Dashboard() {
     : 'var(--text-muted)'
 
   return (
-    <div className="flex flex-col min-h-full" style={{ padding: '24px', gap: '20px' }}>
+    <div
+      className="flex flex-col min-h-full"
+      style={{ padding: '24px', gap: '20px', boxSizing: 'border-box', overflowX: 'hidden', width: '100%' }}
+    >
 
       {/* Status bar */}
       <div
-        className="flex flex-wrap items-center gap-4 justify-between rounded-2xl px-6 py-4"
-        style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}
+        className="flex items-center gap-4 justify-between rounded-2xl"
+        style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', flexWrap: 'wrap', minWidth: 0, padding: '14px 20px' }}
       >
         {/* Left: session info */}
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-4 min-w-0">
           {session && (
             <>
               <div className="flex flex-col gap-0.5">
@@ -404,8 +451,19 @@ export default function Dashboard() {
           <div className="flex items-center gap-2">
             {baselineWaiting ? (
               <>
-                <span className="w-2 h-2 rounded-full" style={{ background: 'var(--text-muted)' }} />
-                <span className="text-xs" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+                <span className="w-2 h-2 rounded-full animate-pulse-live" style={{ background: 'var(--text-muted)', opacity: 0.5 }} />
+                <span
+                  className="text-xs"
+                  style={{
+                    fontFamily: 'var(--font-mono)',
+                    background: 'linear-gradient(90deg, var(--text-muted) 0%, rgba(136,136,170,0.9) 40%, rgba(200,200,220,0.6) 50%, rgba(136,136,170,0.9) 60%, var(--text-muted) 100%)',
+                    backgroundSize: '200% auto',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    backgroundClip: 'text',
+                    animation: 'shimmer 2.8s linear infinite',
+                  }}
+                >
                   Waiting for connection...
                 </span>
               </>
@@ -428,10 +486,16 @@ export default function Dashboard() {
         </div>
 
         {/* Right: connection + tick */}
-        <div className="flex items-center gap-6">
-          <div className="flex flex-col gap-0.5 items-end">
-            <span className="text-xs" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>TICK</span>
-            <span className="text-sm" style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>
+        <div className="flex items-center gap-4">
+          <div
+            className="flex items-center gap-2 rounded-lg px-3 py-1.5"
+            style={{
+              background: 'rgba(255,255,255,0.03)',
+              border: '1px solid rgba(255,255,255,0.09)',
+            }}
+          >
+            <span className="text-xs" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', letterSpacing: '0.08em' }}>TICK</span>
+            <span className="text-sm font-semibold" style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>
               {tick}
             </span>
           </div>
@@ -440,36 +504,59 @@ export default function Dashboard() {
       </div>
 
       {/* 3-column main grid */}
-      <div className="grid gap-5" style={{ gridTemplateColumns: '1fr 1fr 1fr', alignItems: 'start' }}>
+      <div
+        className="grid gap-5"
+        style={{ gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)', alignItems: 'start' }}
+      >
 
         {/* Col 1 — Strain gauge */}
-        <GlassCard className="flex flex-col items-center gap-4">
-          <span className="text-xs tracking-widest uppercase self-start" style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>
+        <GlassCard
+          className="flex flex-col items-center"
+          style={{
+            gap: '16px',
+            paddingTop: '28px',
+            paddingBottom: '28px',
+            boxShadow: zone === 'GREEN'
+              ? '0 0 40px rgba(16, 185, 129, 0.08), inset 0 1px 0 rgba(255,255,255,0.06)'
+              : zone === 'YELLOW'
+              ? '0 0 40px rgba(245, 158, 11, 0.08), inset 0 1px 0 rgba(255,255,255,0.06)'
+              : zone === 'RED'
+              ? '0 0 40px rgba(239, 68, 68, 0.09), inset 0 1px 0 rgba(255,255,255,0.06)'
+              : '0 0 40px rgba(220, 38, 38, 0.14), inset 0 1px 0 rgba(255,255,255,0.06)',
+            transition: 'box-shadow 600ms ease-in-out',
+          }}
+        >
+          <span className="text-xs tracking-widest uppercase self-start" style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-muted)', letterSpacing: '0.15em' }}>
             EYE STRAIN GAUGE
           </span>
           <StrainGauge score={score} />
           <ZoneBadge zone={zone} />
           <span
-            className="text-xs"
-            style={{ fontFamily: 'var(--font-mono)', color: updatedColor }}
+            className={`text-xs ${updatedLabel === 'Waiting...' ? 'animate-pulse-live' : ''}`}
+            style={{ fontFamily: 'var(--font-mono)', color: updatedColor, opacity: updatedLabel === 'Waiting...' ? 0.65 : 1 }}
           >
             {updatedLabel}
           </span>
         </GlassCard>
 
         {/* Col 2 — Crash + TFSI */}
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-4" style={{ minWidth: 0 }}>
           <CrashCard crash={crash} />
           <TFSICard stability={stability} />
         </div>
 
         {/* Col 3 — Active Prescription */}
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-4" style={{ minWidth: 0 }}>
           <GlassCard
             className="flex flex-col gap-4"
             style={{
-              borderLeft: rxText ? '2px solid var(--zone-yellow)' : undefined,
+              borderLeft: rxText
+                ? '2px solid var(--zone-yellow)'
+                : '2px solid rgba(16, 185, 129, 0.4)',
               animation: rxText ? 'pulse-critical 3s infinite' : undefined,
+              boxShadow: rxText
+                ? undefined
+                : 'inset 0 1px 0 rgba(255,255,255,0.06)',
             }}
           >
             <span className="text-xs tracking-widest uppercase" style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>
@@ -480,10 +567,10 @@ export default function Dashboard() {
               <div className="flex items-center gap-3">
                 <CheckCircle2 size={20} style={{ color: 'var(--zone-green)' }} />
                 <div>
-                  <div className="text-sm font-medium" style={{ color: 'var(--zone-green)', fontFamily: 'var(--font-dm)' }}>
+                  <div className="text-sm font-medium" style={{ color: 'var(--zone-green)', fontFamily: 'var(--font-dm)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     No intervention required
                   </div>
-                  <div className="text-xs" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+                  <div className="text-xs" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     Eyes in healthy range
                   </div>
                 </div>
@@ -493,7 +580,7 @@ export default function Dashboard() {
                 <AlertTriangle size={18} style={{ color: 'var(--zone-yellow)' }} />
                 <p
                   className="text-lg font-bold leading-snug uppercase"
-                  style={{ fontFamily: 'var(--font-syne)', color: 'var(--zone-yellow)' }}
+                  style={{ fontFamily: 'var(--font-syne)', color: 'var(--zone-yellow)', wordBreak: 'break-word', overflowWrap: 'anywhere' }}
                 >
                   {rxText}
                 </p>
@@ -519,10 +606,12 @@ export default function Dashboard() {
 
       {/* Quick Actions */}
       <GlassCard className="flex flex-col gap-5">
-        <span className="text-xs tracking-widest uppercase" style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>
-          QUICK ACTIONS
-        </span>
-        <div className="flex gap-4">
+        <div className="flex items-center justify-between">
+          <span className="text-xs tracking-widest uppercase" style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-muted)', letterSpacing: '0.15em' }}>
+            QUICK ACTIONS
+          </span>
+        </div>
+        <div className="flex gap-3">
 
           {/* Button 1 — Force Prescription */}
           <button
@@ -536,20 +625,35 @@ export default function Dashboard() {
                 addToast('Action not available — add POST /actions/force_prescription to backend', 'muted')
               } finally { setActionLoading(null) }
             }}
-            className="flex items-center gap-3 flex-1 rounded-xl px-6 py-4 text-sm font-medium transition-all duration-200"
+            className="flex flex-1 items-center justify-center gap-2.5 rounded-xl text-sm font-medium transition-all duration-200"
             style={{
-              background: 'var(--bg-elevated)',
-              border: '1px solid var(--border-default)',
-              color: 'var(--text-primary)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              height: '52px',
+              padding: '0 20px',
+              background: 'rgba(245, 158, 11, 0.07)',
+              border: '1px solid rgba(245, 158, 11, 0.25)',
+              color: 'var(--zone-yellow)',
               fontFamily: 'var(--font-dm)',
               cursor: actionLoading === 'rx' ? 'wait' : 'pointer',
+              boxShadow: '0 2px 12px rgba(245,158,11,0.05)',
+              boxSizing: 'border-box',
             }}
-            onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-overlay, #1a1a2e)'}
-            onMouseLeave={e => e.currentTarget.style.background = 'var(--bg-elevated)'}
+            onMouseEnter={e => {
+              e.currentTarget.style.background = 'rgba(245, 158, 11, 0.13)'
+              e.currentTarget.style.boxShadow = '0 4px 20px rgba(245,158,11,0.15)'
+              e.currentTarget.style.borderColor = 'rgba(245, 158, 11, 0.45)'
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.background = 'rgba(245, 158, 11, 0.07)'
+              e.currentTarget.style.boxShadow = '0 2px 12px rgba(245,158,11,0.05)'
+              e.currentTarget.style.borderColor = 'rgba(245, 158, 11, 0.25)'
+            }}
           >
             {actionLoading === 'rx'
-              ? <span className="w-4 h-4 rounded-full border-2 border-t-transparent animate-spin" style={{ borderColor: 'var(--zone-yellow)', borderTopColor: 'transparent' }} />
-              : <Zap size={16} style={{ color: 'var(--zone-yellow)', flexShrink: 0 }} />
+              ? <span className="w-4 h-4 rounded-full border-2 animate-spin" style={{ borderColor: 'var(--zone-yellow)', borderTopColor: 'transparent' }} />
+              : <Zap size={15} style={{ flexShrink: 0 }} />
             }
             Force Prescription
           </button>
@@ -566,20 +670,37 @@ export default function Dashboard() {
                 addToast('Action not available — add POST /actions/trigger_acuity to backend', 'muted')
               } finally { setActionLoading(null) }
             }}
-            className="flex items-center gap-3 flex-1 rounded-xl px-6 py-4 text-sm font-medium transition-all duration-200"
+            className="flex flex-1 items-center justify-center gap-2.5 rounded-xl text-sm font-medium transition-all duration-200"
             style={{
-              background: 'var(--bg-elevated)',
-              border: '1px solid var(--border-default)',
-              color: 'var(--text-primary)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              height: '52px',
+              padding: '0 20px',
+              background: 'rgba(232, 232, 248, 0.05)',
+              border: '1px solid rgba(232, 232, 248, 0.15)',
+              color: 'var(--text-secondary)',
               fontFamily: 'var(--font-dm)',
               cursor: actionLoading === 'acuity' ? 'wait' : 'pointer',
+              boxShadow: '0 2px 12px rgba(232,232,248,0.03)',
+              boxSizing: 'border-box',
             }}
-            onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-overlay, #1a1a2e)'}
-            onMouseLeave={e => e.currentTarget.style.background = 'var(--bg-elevated)'}
+            onMouseEnter={e => {
+              e.currentTarget.style.background = 'rgba(232, 232, 248, 0.10)'
+              e.currentTarget.style.boxShadow = '0 4px 20px rgba(232,232,248,0.08)'
+              e.currentTarget.style.borderColor = 'rgba(232, 232, 248, 0.3)'
+              e.currentTarget.style.color = 'var(--text-primary)'
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.background = 'rgba(232, 232, 248, 0.05)'
+              e.currentTarget.style.boxShadow = '0 2px 12px rgba(232,232,248,0.03)'
+              e.currentTarget.style.borderColor = 'rgba(232, 232, 248, 0.15)'
+              e.currentTarget.style.color = 'var(--text-secondary)'
+            }}
           >
             {actionLoading === 'acuity'
-              ? <span className="w-4 h-4 rounded-full border-2 border-t-transparent animate-spin" style={{ borderColor: 'var(--accent)', borderTopColor: 'transparent' }} />
-              : <Eye size={16} style={{ color: 'var(--accent, #7c9cff)', flexShrink: 0 }} />
+              ? <span className="w-4 h-4 rounded-full border-2 animate-spin" style={{ borderColor: 'var(--text-secondary)', borderTopColor: 'transparent' }} />
+              : <Eye size={15} style={{ flexShrink: 0 }} />
             }
             Trigger Acuity Test
           </button>
@@ -596,20 +717,35 @@ export default function Dashboard() {
                 addToast('Action not available — add POST /actions/trigger_tfsi to backend', 'muted')
               } finally { setActionLoading(null) }
             }}
-            className="flex items-center gap-3 flex-1 rounded-xl px-6 py-4 text-sm font-medium transition-all duration-200"
+            className="flex flex-1 items-center justify-center gap-2.5 rounded-xl text-sm font-medium transition-all duration-200"
             style={{
-              background: 'var(--bg-elevated)',
-              border: '1px solid var(--border-default)',
-              color: 'var(--text-primary)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              height: '52px',
+              padding: '0 20px',
+              background: 'rgba(16, 185, 129, 0.07)',
+              border: '1px solid rgba(16, 185, 129, 0.25)',
+              color: 'var(--zone-green)',
               fontFamily: 'var(--font-dm)',
               cursor: actionLoading === 'tfsi' ? 'wait' : 'pointer',
+              boxShadow: '0 2px 12px rgba(16,185,129,0.05)',
+              boxSizing: 'border-box',
             }}
-            onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-overlay, #1a1a2e)'}
-            onMouseLeave={e => e.currentTarget.style.background = 'var(--bg-elevated)'}
+            onMouseEnter={e => {
+              e.currentTarget.style.background = 'rgba(16, 185, 129, 0.13)'
+              e.currentTarget.style.boxShadow = '0 4px 20px rgba(16,185,129,0.15)'
+              e.currentTarget.style.borderColor = 'rgba(16, 185, 129, 0.45)'
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.background = 'rgba(16, 185, 129, 0.07)'
+              e.currentTarget.style.boxShadow = '0 2px 12px rgba(16,185,129,0.05)'
+              e.currentTarget.style.borderColor = 'rgba(16, 185, 129, 0.25)'
+            }}
           >
             {actionLoading === 'tfsi'
-              ? <span className="w-4 h-4 rounded-full border-2 border-t-transparent animate-spin" style={{ borderColor: 'var(--zone-green)', borderTopColor: 'transparent' }} />
-              : <Activity size={16} style={{ color: 'var(--zone-green)', flexShrink: 0 }} />
+              ? <span className="w-4 h-4 rounded-full border-2 animate-spin" style={{ borderColor: 'var(--zone-green)', borderTopColor: 'transparent' }} />
+              : <Activity size={15} style={{ flexShrink: 0 }} />
             }
             Run TFSI Check
           </button>
@@ -625,11 +761,17 @@ export default function Dashboard() {
         {toasts.map(t => (
           <div
             key={t.id}
-            className="rounded-xl px-4 py-3 text-sm animate-fade-in"
+            className="animate-fade-in"
             style={{
               pointerEvents: 'auto',
               fontFamily: 'var(--font-dm)',
-              maxWidth: '360px',
+              fontSize: '14px',
+              lineHeight: '1.5',
+              padding: '14px 18px',
+              borderRadius: '14px',
+              minWidth: '220px',
+              maxWidth: '380px',
+              boxSizing: 'border-box',
               boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
               ...(t.type === 'success' ? {
                 background: 'rgba(0, 210, 120, 0.08)',
