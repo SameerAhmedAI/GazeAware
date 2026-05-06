@@ -26,9 +26,9 @@ const SIGNALS = [
 ]
 
 const HOW_IT_WORKS = [
-  { step: '01', title: 'Webcam Capture', desc: '30 FPS webcam input processed by MediaPipe Face Mesh — 468 landmarks tracked in real time.' },
-  { step: '02', title: 'Signal Fusion', desc: '9 independent biometric signals fused with calibrated weights into a 0–100 strain score.' },
-  { step: '03', title: 'Smart Response', desc: 'AI prescriptions fire when strain is elevated. Vision acuity tracked. Everything stays local.' },
+  { step: '01', title: 'Webcam Capture', desc: '30 FPS webcam input processed by MediaPipe Face Mesh — 468 facial landmarks tracked in real time. No video is ever stored or uploaded. All processing runs entirely on your local CPU with zero cloud dependency.' },
+  { step: '02', title: 'Signal Fusion', desc: '11 simultaneous eye, behavioral, and environmental signals — including blink rate, blink quality, squint detection, posture drift, ambient lighting, gaze entropy, and tear-film stability — fused with calibrated weights into a live 0–100 strain score updated every 500ms.' },
+  { step: '03', title: 'Smart Response', desc: 'AI prescriptions powered by Groq\'s LLaMA 3.1 engine fire automatically when strain is elevated. On-demand Digital Visual Acuity tests track long-term vision health. Weekly strain reports deliver personalized ergonomic recommendations. Everything stays 100% local.' },
 ]
 
 /* ─── inline style helpers ─────────────────────────────────────────────────── */
@@ -41,7 +41,7 @@ const NAV_STYLE = {
 
 const HERO_SECTION = {
   minHeight: '100vh',
-  paddingTop: '80px',
+  paddingTop: '106px',
   paddingBottom: '80px',
   position: 'relative',
   overflow: 'hidden',
@@ -181,20 +181,22 @@ function SignalCard({ icon: Icon, label, desc, accent }) {
 function HowStep({ step, title, desc, delay, isLast }) {
   return (
     <div style={{
-      flex: 1, minWidth: '200px',
-      display: 'flex', flexDirection: 'column', gap: '16px',
+      flex: 1, minWidth: '220px',
+      display: 'flex', flexDirection: 'column', alignItems: 'center',
+      gap: '20px', textAlign: 'center',
       animation: 'fade-in-up 0.5s ease-out both',
       animationDelay: delay,
     }}>
-      {/* Number badge */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0' }}>
+      {/* Number badge row */}
+      <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
         <div style={{
-          width: '52px', height: '52px', borderRadius: '50%',
+          width: '56px', height: '56px', borderRadius: '50%',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           background: `radial-gradient(circle, ${ACCENT_DIM}, rgba(0,255,136,0.04))`,
           border: `1.5px solid ${ACCENT_BORDER}`,
           flexShrink: 0,
           boxShadow: `0 0 16px ${ACCENT_GLOW}`,
+          margin: '0 auto',
         }}>
           <span style={{
             fontFamily: 'var(--font-mono)', fontSize: '15px', fontWeight: 700,
@@ -208,19 +210,18 @@ function HowStep({ step, title, desc, delay, isLast }) {
           <div style={{
             flex: 1, height: '1.5px',
             background: `linear-gradient(90deg, ${ACCENT_BORDER} 0%, rgba(0,255,136,0.04) 100%)`,
-            marginLeft: '0',
           }} />
         )}
       </div>
 
       <h3 style={{
-        fontSize: '17px', fontWeight: 600,
+        fontSize: '18px', fontWeight: 700, margin: '4px 0 0',
         fontFamily: 'var(--font-syne)', color: 'var(--text-primary)',
       }}>
         {title}
       </h3>
       <p style={{
-        fontSize: '13px', lineHeight: '1.7',
+        fontSize: '15px', lineHeight: '1.8', margin: 0,
         color: 'var(--text-secondary)', fontFamily: 'var(--font-dm)',
       }}>
         {desc}
@@ -236,33 +237,43 @@ export default function Landing() {
 
       {/* ── Navbar ──────────────────────────────────────────────────────────── */}
       <nav
-        className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-8 py-4"
-        style={NAV_STYLE}
+        style={{
+          ...NAV_STYLE,
+          position: 'fixed', top: 0, left: 0, right: 0, zIndex: 50,
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          height: '68px',
+          paddingLeft: '24px',
+          paddingRight: '24px',
+        }}
       >
-        <div className="flex items-center gap-2.5">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <div style={{
             width: '32px', height: '32px', borderRadius: '10px',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             background: `${ACCENT}18`,
             border: `1px solid ${ACCENT_BORDER}`,
+            flexShrink: 0,
           }}>
             <Eye size={15} style={{ color: ACCENT }} />
           </div>
-          <span style={{ fontFamily: 'var(--font-syne)', fontWeight: 700, fontSize: '18px' }}>
+          <span style={{ fontFamily: 'var(--font-syne)', fontWeight: 700, fontSize: '18px', color: 'var(--text-primary)' }}>
             GazeAware
           </span>
         </div>
 
         <Link
           to="/dashboard"
-          className="flex items-center gap-2 text-sm font-medium transition-all duration-200"
           style={{
-            fontFamily: 'var(--font-dm)',
-            padding: '8px 20px',
+            display: 'flex', alignItems: 'center', gap: '8px',
+            fontFamily: 'var(--font-dm)', fontSize: '14px', fontWeight: 500,
+            padding: '9px 20px',
             borderRadius: '12px',
             background: `${ACCENT}12`,
             color: ACCENT,
             border: `1px solid ${ACCENT_BORDER}`,
+            textDecoration: 'none',
+            transition: 'background 0.2s, box-shadow 0.2s',
+            whiteSpace: 'nowrap',
           }}
           onMouseEnter={e => { e.currentTarget.style.background = `${ACCENT}22`; e.currentTarget.style.boxShadow = `0 0 16px ${ACCENT}28` }}
           onMouseLeave={e => { e.currentTarget.style.background = `${ACCENT}12`; e.currentTarget.style.boxShadow = 'none' }}
@@ -356,10 +367,13 @@ export default function Landing() {
               onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = `0 10px 40px ${ACCENT}60` }}
               onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = `0 4px 28px ${ACCENT}44` }}
             >
-              Open Dashboard <ArrowRight size={16} />
+              Get Started <ArrowRight size={16} />
             </Link>
-            <Link
-              to="/acuity"
+            <button
+              onClick={() => {
+                const section = document.getElementById('stats-section');
+                if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }}
               className="flex items-center gap-2 font-semibold transition-all duration-200"
               style={{
                 fontFamily: 'var(--font-dm)',
@@ -368,18 +382,19 @@ export default function Landing() {
                 color: 'var(--text-primary)',
                 fontSize: '15px',
                 border: '1px solid var(--border-default)',
+                cursor: 'pointer',
               }}
               onMouseEnter={e => { e.currentTarget.style.borderColor = ACCENT_BORDER; e.currentTarget.style.background = `${ACCENT}0a`; e.currentTarget.style.color = ACCENT }}
               onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-default)'; e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-primary)' }}
             >
-              <Eye size={16} /> Acuity Test
-            </Link>
+              <Eye size={16} /> Learn More
+            </button>
           </div>
         </div>
       </section>
 
       {/* ── Stats bar ───────────────────────────────────────────────────────── */}
-      <section style={{
+      <section id="stats-section" style={{
         padding: '28px 32px',
         borderTop: '1px solid rgba(0,255,136,0.10)',
         borderBottom: '1px solid rgba(0,255,136,0.10)',
@@ -457,21 +472,21 @@ export default function Landing() {
 
       {/* ── How It Works ────────────────────────────────────────────────────── */}
       <section style={{
-        padding: '96px 32px',
+        padding: '80px 32px 88px',
         background: 'linear-gradient(180deg, rgba(0,255,136,0.025) 0%, rgba(0,0,0,0) 100%)',
         borderTop: '1px solid rgba(0,255,136,0.08)',
         position: 'relative', overflow: 'hidden',
       }}>
-        <div style={{ maxWidth: '900px', margin: '0 auto' }}>
+        <div style={{ maxWidth: '1020px', margin: '0 auto', textAlign: 'center' }}>
           <h2 style={{
             fontFamily: 'var(--font-syne)', fontSize: '36px', fontWeight: 800,
-            textAlign: 'center', marginBottom: '64px', color: 'var(--text-primary)',
+            textAlign: 'center', marginBottom: '72px', color: 'var(--text-primary)',
           }}>
             How It <span style={{ color: ACCENT }}>Works</span>
           </h2>
 
-          {/* Steps row — relative container so we can overlay the connector */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0' }}>
+          {/* Steps row */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '48px', alignItems: 'flex-start', justifyContent: 'center' }}>
             {HOW_IT_WORKS.map(({ step, title, desc }, i) => (
               <HowStep
                 key={step}
@@ -553,19 +568,121 @@ export default function Landing() {
 
       {/* ── Footer ──────────────────────────────────────────────────────────── */}
       <footer style={{
-        padding: '32px',
-        textAlign: 'center',
-        borderTop: '1px solid rgba(255,255,255,0.05)',
+        borderTop: '1px solid rgba(255,255,255,0.06)',
         background: 'rgba(0,255,136,0.015)',
       }}>
-        <p style={{ fontFamily: 'var(--font-dm)', fontSize: '13px', color: 'var(--text-muted)', lineHeight: '1.8' }}>
-          Built at{' '}
-          <span style={{ color: ACCENT, fontWeight: 600 }}>SZABIST Karachi</span>
-          {' '}by{' '}
-          <span style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>Sameer Ahmed</span>
-          {' '}&amp;{' '}
-          <span style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>Muhammad Ahmed Rayyan</span>
-        </p>
+        {/* ── Main footer columns ── */}
+        <div style={{
+          maxWidth: '1060px', margin: '0 auto',
+          padding: '56px 32px 40px',
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+          gap: '40px',
+        }}>
+
+          {/* LEFT — Brand block */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{
+                width: '30px', height: '30px', borderRadius: '9px',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: `${ACCENT}18`, border: `1px solid ${ACCENT_BORDER}`, flexShrink: 0,
+              }}>
+                <Eye size={14} style={{ color: ACCENT }} />
+              </div>
+              <span style={{ fontFamily: 'var(--font-syne)', fontWeight: 700, fontSize: '16px', color: 'var(--text-primary)' }}>
+                GazeAware
+              </span>
+            </div>
+            <p style={{ fontFamily: 'var(--font-dm)', fontSize: '12px', lineHeight: '1.75', color: 'var(--text-muted)', maxWidth: '240px' }}>
+              AI-powered passive eye strain monitor. Webcam only. Fully local. Zero wearables.
+            </p>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: ACCENT, letterSpacing: '0.04em' }}>
+              Built at SZABIST, Karachi
+            </span>
+          </div>
+
+          {/* MIDDLE — Navigation */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>
+              Navigation
+            </span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {[
+                { label: 'Dashboard', to: '/dashboard' },
+                { label: 'History',   to: '/history'   },
+                { label: 'Acuity Test', to: '/acuity'  },
+                { label: 'Weekly Report', to: '/report' },
+              ].map(({ label, to }) => (
+                <Link
+                  key={to}
+                  to={to}
+                  style={{
+                    fontFamily: 'var(--font-dm)', fontSize: '13px',
+                    color: 'var(--text-secondary)', textDecoration: 'none',
+                    transition: 'color 0.18s',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.color = ACCENT }}
+                  onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-secondary)' }}
+                >
+                  {label}
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          {/* RIGHT — Project info */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>
+              Project
+            </span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '7px' }}>
+              {['Python 3.11+', 'MediaPipe', 'OpenCV', 'FastAPI', 'React', 'Groq LLaMA 3.1'].map(item => (
+                <span key={item} style={{ fontFamily: 'var(--font-dm)', fontSize: '13px', color: 'var(--text-secondary)' }}>
+                  · {item}
+                </span>
+              ))}
+            </div>
+            <span style={{
+              fontFamily: 'var(--font-mono)', fontSize: '10px', letterSpacing: '0.04em',
+              color: ACCENT, marginTop: '4px',
+            }}>
+              100% Local Processing · No Data Uploaded
+            </span>
+          </div>
+
+        </div>
+
+        {/* ── Bottom bar ── */}
+        <div style={{
+          borderTop: '1px solid rgba(255,255,255,0.05)',
+          padding: '18px 32px',
+          maxWidth: '1060px', margin: '0 auto',
+          display: 'flex', flexWrap: 'wrap', alignItems: 'center',
+          justifyContent: 'space-between', gap: '10px',
+        }}>
+          <span style={{ fontFamily: 'var(--font-dm)', fontSize: '12px', color: 'var(--text-muted)' }}>
+            © 2025 GazeAware — SZABIST, Karachi
+          </span>
+          <a
+            href="https://github.com/sameerahmedai/GazeAware"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: '8px',
+              fontFamily: 'var(--font-dm)', fontSize: '12px',
+              color: ACCENT, textDecoration: 'none',
+              transition: 'color 0.18s',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-muted)' }}
+            onMouseLeave={e => { e.currentTarget.style.color = ACCENT }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.385-1.335-1.755-1.335-1.755-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 21.795 24 17.295 24 12c0-6.63-5.37-12-12-12z"/>
+            </svg>
+            GITHUB
+          </a>
+        </div>
       </footer>
     </div>
   )
