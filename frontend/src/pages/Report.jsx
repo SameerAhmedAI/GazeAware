@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import {
   Activity, TrendingUp, Zap, FileText,
-  AlertOctagon, ShieldCheck, RefreshCw, Eye, BarChart2,
+  AlertOctagon, ShieldCheck, RefreshCw, Eye, BarChart2, Download,
 } from 'lucide-react'
 import { api } from '../services/api.js'
 import StatCard from '../components/StatCard.jsx'
@@ -168,6 +168,7 @@ export default function Report() {
   const [degradation, setDegradation] = useState(null)
   const [loading,     setLoading]     = useState(true)
   const [error,       setError]       = useState(null)
+  const [pdfLoading,  setPdfLoading]  = useState(false)
 
   const fetchData = () => {
     setLoading(true); setError(null)
@@ -193,6 +194,175 @@ export default function Report() {
   const atRisk      = degradation?.at_risk === true
 
   const totalRx = (rxByType.auto ?? 0) + (rxByType.forced ?? 0) + (rxByType.acuity ?? 0)
+
+  const handleDownloadPDF = async () => {
+    if (!summary) return
+    setPdfLoading(true)
+    try {
+      // Load jsPDF from CDN via script tag
+      const script = document.createElement('script')
+      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'
+      document.head.appendChild(script)
+      await new Promise((resolve, reject) => {
+        script.onload = resolve
+        script.onerror = reject
+      })
+
+      const { jsPDF } = window.jspdf
+      const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+      const pageW = doc.internal.pageSize.getWidth()
+      const margin = 20
+      const contentW = pageW - margin * 2
+      let y = 20
+
+      const addPageIfNeeded = (needed = 20) => {
+        if (y + needed > 275) { doc.addPage(); y = 20 }
+      }
+
+      const sectionHeader = (title) => {
+        addPageIfNeeded(12)
+        doc.setFillColor(14, 14, 22)
+        doc.rect(margin, y, contentW, 8, 'F')
+        doc.setFont('helvetica', 'bold')
+        doc.setFontSize(8.5)
+        doc.setTextColor(180, 180, 210)
+        doc.text(title.toUpperCase(), margin + 4, y + 5.5)
+        y += 12
+      }
+
+      const kv = (label, value, indent = 0) => {
+        addPageIfNeeded(7)
+        doc.setFont('helvetica', 'bold')
+        doc.setFontSize(8)
+        doc.setTextColor(110, 110, 150)
+        doc.text(label + ':', margin + indent, y)
+        doc.setFont('helvetica', 'normal')
+        doc.setTextColor(30, 30, 50)
+        const lines = doc.splitTextToSize(String(value ?? '—'), contentW - indent - 38)
+        doc.text(lines, margin + indent + 36, y)
+        y += lines.length * 5 + 2
+      }
+
+      // Cover
+      doc.setFillColor(9, 9, 15)
+      doc.rect(0, 0, pageW, 55, 'F')
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(20)
+      doc.setTextColor(240, 240, 248)
+      doc.text('GazeAware', margin, 28)
+      doc.setFontSize(10)
+      doc.setTextColor(136, 136, 170)
+      doc.text('Session Analytics Report', margin, 38)
+      doc.setFontSize(8)
+      doc.setTextColor(68, 68, 90)
+      doc.text('Generated: ' + new Date().toLocaleString(), margin, 49)
+      y = 65
+
+      // Signal averages
+      sectionHeader('Signal Averages (All Time)')
+      const sa = summary.signal_averages ?? {}
+      kv('Average Strain Score', sa.avg_strain ?? '—')
+      kv('Peak Strain Score', sa.peak_strain ?? '—')
+      kv('Average Blink Rate', sa.avg_blink ?? '—')
+      kv('Average Squint', sa.avg_squint ?? '—')
+      kv('Average Screen Distance', sa.avg_dist ?? '—')
+      y += 4
+
+      // Prescription breakdown
+      sectionHeader('Prescription Breakdown')
+      const rx = summary.rx_by_type ?? {}
+      kv('Automatic (AI)', rx.auto ?? 0)
+      kv('Forced via Dashboard', rx.forced ?? 0)
+      kv('Acuity Test', rx.acuity ?? 0)
+      kv('Total', (rx.auto ?? 0) + (rx.forced ?? 0) + (rx.acuity ?? 0))
+      y += 4
+
+      // Acuity results
+      if (summary.acuity_results?.length) {
+        sectionHeader(`Visual Acuity Test Results (${summary.acuity_results.length} tests)`)
+        summary.acuity_results.forEach((a, i) => {
+          addPageIfNeeded(14)
+          doc.setFont('helvetica', 'bold')
+          doc.setFontSize(8)
+          doc.setTextColor(60, 60, 100)
+          doc.text(`#${i + 1}`, margin, y)
+          y += 5
+          kv('Date', fmtDate(a.timestamp), 4)
+          kv('Result', a.fraction ?? 'NONE', 4)
+          kv('Rows Passed', `${a.last_row ?? 0} / 8`, 4)
+          addPageIfNeeded(3)
+          doc.setDrawColor(30, 30, 46)
+          doc.line(margin, y, margin + contentW, y)
+          y += 5
+        })
+      }
+
+      // Sessions
+      if (summary.sessions?.length) {
+        sectionHeader(`Sessions (${summary.sessions.length} total)`)
+        // Table header
+        addPageIfNeeded(10)
+        const cols = ['Session', 'Started', 'Avg Strain', 'Peak Strain']
+        const colW = [25, 70, 30, 30]
+        let cx = margin
+        doc.setFont('helvetica', 'bold')
+        doc.setFontSize(7.5)
+        doc.setTextColor(100, 100, 130)
+        cols.forEach((c, i) => { doc.text(c, cx, y); cx += colW[i] })
+        y += 5
+        doc.setDrawColor(30, 30, 46)
+        doc.line(margin, y, margin + contentW, y)
+        y += 3
+        summary.sessions.forEach(s => {
+          addPageIfNeeded(6)
+          cx = margin
+          doc.setFont('helvetica', 'normal')
+          doc.setFontSize(7)
+          doc.setTextColor(60, 60, 80)
+          const rowData = [
+            `#${s.id}`,
+            fmtDate(s.start_time),
+            String(s.avg_strain ?? '—'),
+            String(s.peak_strain ?? '—'),
+          ]
+          rowData.forEach((val, i) => { doc.text(val, cx, y); cx += colW[i] })
+          y += 5
+        })
+      }
+
+      // Degradation note
+      if (degradation) {
+        addPageIfNeeded(20)
+        y += 4
+        sectionHeader('Vision Degradation Analysis')
+        kv('Risk Status', degradation.at_risk ? 'AT RISK' : 'Stable')
+        if (degradation.drop_pct != null) kv('Acuity Drop', `${degradation.drop_pct.toFixed(1)}%`)
+        if (degradation.avg_strain != null) kv('Avg Strain (analysis window)', degradation.avg_strain.toFixed(1))
+        if (degradation.summary_text) kv('Summary', degradation.summary_text)
+      }
+
+      // Footer on every page
+      const totalPages = doc.internal.getNumberOfPages()
+      for (let p = 1; p <= totalPages; p++) {
+        doc.setPage(p)
+        doc.setFont('helvetica', 'normal')
+        doc.setFontSize(7)
+        doc.setTextColor(68, 68, 90)
+        doc.text(
+          `GazeAware Analytics Report  •  Page ${p} of ${totalPages}`,
+          margin, 290
+        )
+      }
+
+      const filename = `gazeaware-analytics-${new Date().toISOString().slice(0, 10)}.pdf`
+      doc.save(filename)
+    } catch (err) {
+      console.error('PDF generation failed:', err)
+      alert('PDF generation failed. Please try again.')
+    } finally {
+      setPdfLoading(false)
+    }
+  }
 
   return (
     <div style={{
@@ -224,6 +394,30 @@ export default function Report() {
           border: '1px solid var(--border-default)',
         }}>
           <RefreshCw size={13} /> Refresh
+        </button>
+        <button
+          onClick={handleDownloadPDF}
+          disabled={pdfLoading || !summary}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: '8px',
+            padding: '8px 16px', borderRadius: '10px', fontSize: '13px',
+            fontFamily: 'var(--font-dm)', fontWeight: 500,
+            cursor: (pdfLoading || !summary) ? 'not-allowed' : 'pointer',
+            background: 'var(--bg-elevated)', color: 'var(--text-primary)',
+            border: '1px solid var(--border-default)',
+            opacity: !summary ? 0.5 : 1,
+            transition: 'all 0.2s',
+          }}
+        >
+          {pdfLoading
+            ? <span style={{
+                width: '12px', height: '12px', borderRadius: '50%',
+                border: '2px solid var(--accent)', borderTopColor: 'transparent',
+                display: 'inline-block', animation: 'spin 0.8s linear infinite',
+              }} />
+            : <Download size={14} />
+          }
+          {pdfLoading ? 'Generating...' : 'Download PDF'}
         </button>
       </div>
 

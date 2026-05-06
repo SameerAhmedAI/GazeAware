@@ -28,6 +28,7 @@ sessions/
 exports/
 reports/output/
 assets/models/
+models/
 *.gguf
 *.bin
 *.ggml

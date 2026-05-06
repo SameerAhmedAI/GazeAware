@@ -43,6 +43,12 @@ USE_GROQ: bool = os.environ.get("GAZEAWARE_USE_GROQ", "true").strip().lower() no
     "0", "false", "no", "off",
 )
 
+# ── Local LLM switch ────────────────────────────────────────────────────────────────────────────────
+# Set to True to use local TinyLlama instead of Groq.
+# Groq = fast + quality (for demos/recording)
+# Local = offline + slower (for evaluator demos without internet)
+USE_LOCAL_LLM: bool = True  # ← change to True to switch to local model
+
 
 # ── Prescription rules (hardcoded fallback) ──────────────────────────────────
 # Each tuple: (priority, signal_key, threshold, prescription_text)
@@ -107,20 +113,42 @@ class PrescriptionEngine:
 
         init_db()
 
-        # Lazily instantiate GroqEngine only when USE_GROQ is True
+        # ── Backend selection ─────────────────────────────────────────────────────────────────
+        # USE_LOCAL_LLM = True  → TinyLlama (offline, slower, for evaluator demos)
+        # USE_LOCAL_LLM = False → Groq API (fast, quality, for recording/demos)
+        # USE_GROQ = False      → Hardcoded rules only (offline fallback)
         self._groq: object | None = None
-        if USE_GROQ:
+        self._local: object | None = None
+
+        if USE_LOCAL_LLM:
+            # Local TinyLlama path
+            try:
+                from backend.nlp.local_engine import LocalEngine
+                self._local = LocalEngine()
+                logger.info("PrescriptionEngine: Local TinyLlama back-end active.")
+                print("  [Prescription] Using LOCAL TinyLlama model.")
+            except Exception as exc:  # noqa: BLE001
+                logger.warning(
+                    "PrescriptionEngine: LocalEngine init failed (%s) — "
+                    "falling back to hardcoded rules.", exc
+                )
+                self._local = None
+        elif USE_GROQ:
+            # Groq cloud path
             try:
                 from backend.nlp.groq_engine import GroqEngine
                 self._groq = GroqEngine()
                 logger.info("PrescriptionEngine: Groq back-end active (model=%s)",
                             os.environ.get("GROQ_MODEL", "llama-3.1-8b-instant"))
+                print("  [Prescription] Using Groq API (cloud LLM).")
             except Exception as exc:  # noqa: BLE001
                 logger.warning(
                     "PrescriptionEngine: Groq initialisation failed (%s) — "
                     "falling back to hardcoded rules.", exc
                 )
                 self._groq = None
+        else:
+            print("  [Prescription] Using hardcoded rules (offline mode).")
 
     # ─────────────────────────────────────────────────────────────────────────
     def update(
@@ -195,6 +223,8 @@ class PrescriptionEngine:
         """
         Dispatch to Groq or hardcoded rule engine and return a prescription dict.
         """
+        if self._local is not None:
+            return self._generate_local(score, signals)
         if self._groq is not None:
             return self._generate_groq(score, signals)
         return self._select_hardcoded(score, signals)
@@ -218,6 +248,30 @@ class PrescriptionEngine:
         dominant_signal = self._dominant_signal(signals)
         return {
             "key":               "groq_generated",
+            "title":             "PRESCRIPTION",
+            "text":              text,
+            "triggered_signals": [dominant_signal],
+            "context":           context_str,
+        }
+
+    # ─────────────────────────────────────────────────────────────────────────────
+    def _generate_local(self, score: float, signals: dict) -> dict:
+        """Call LocalEngine and wrap output in standard prescription dict."""
+        try:
+            from backend.nlp.context_detector import get_active_context
+            context_str = get_active_context()
+        except Exception:  # noqa: BLE001
+            context_str = "general computer use"
+
+        try:
+            text = self._local.generate_prescription(score, signals, context_str)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("LocalEngine generate_prescription raised: %s — using hardcoded.", exc)
+            return self._select_hardcoded(score, signals)
+
+        dominant_signal = self._dominant_signal(signals)
+        return {
+            "key":               "local_llm",
             "title":             "PRESCRIPTION",
             "text":              text,
             "triggered_signals": [dominant_signal],
@@ -326,7 +380,12 @@ class PrescriptionEngine:
         text    = prescription.get("text", "")
         signals = ", ".join(prescription.get("triggered_signals", []))
         context = prescription.get("context", "")
-        engine_label = "Groq AI" if self._groq is not None else "hardcoded"
+        if self._local is not None:
+            engine_label = "Local TinyLlama"
+        elif self._groq is not None:
+            engine_label = "Groq AI"
+        else:
+            engine_label = "hardcoded"
 
         border = "═" * 56
         inner  = "─" * 56

@@ -493,4 +493,18 @@ Introduced a complete authentication system backed by JWTs and bcrypt password h
 | `frontend/src/App.jsx` | **UPDATED** — Added `PrivateRoute` component to protect dashboard routes checking `localStorage` for tokens. |
 | `frontend/src/layouts/AppLayout.jsx` | **UPDATED** — Added user display string and interactive "Sign Out" button to the bottom of the sidebar. |
 
-*Last updated: Phase 4 completion (Multi-User Login System)*
+### ✅ Phase 4.1 — Integrated Local LLM & PDF Reporting (Complete)
+
+**Overview:**
+Integrated a local TinyLlama backend via `llama-cpp-python` as a privacy-focused offline alternative to Groq. Also migrated and enhanced the PDF generation logic from the History page to the Report page for dynamic analytics exports.
+
+**Files created/modified in Phase 4.1:**
+
+| File | What changed |
+|------|-------------|
+| `backend/nlp/local_engine.py` | **NEW** — `LocalEngine` class exposing the same interface as `GroqEngine`. Downloads and runs TinyLlama 1.1B on CPU locally. |
+| `backend/nlp/prescription.py` | **UPDATED** — Introduced `USE_LOCAL_LLM` flag for selecting between Groq, Local TinyLlama, or hardcoded rules. |
+| `frontend/src/pages/History.jsx` | **UPDATED** — Removed old PDF generation logic and imports. |
+| `frontend/src/pages/Report.jsx` | **UPDATED** — Added `handleDownloadPDF` generator function utilizing `jsPDF` dynamically loaded via CDN. Enables session analytics reporting with styled PDF layout. |
+
+*Last updated: Phase 4.1 completion (Integrated Local LLM & PDF Reporting)*

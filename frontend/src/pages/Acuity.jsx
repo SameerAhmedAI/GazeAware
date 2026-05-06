@@ -114,11 +114,20 @@ export default function Acuity() {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [prescriptions, setPrescriptions] = useState([])
 
   const fetchData = () => {
     setLoading(true); setError(null)
-    api.getAcuityHistory()
-      .then(setData)
+    Promise.all([
+      api.getAcuityHistory(),
+      api.getPrescriptions(),
+    ]).then(([acuityData, rxData]) => {
+      setData(acuityData)
+      const acuityRx = (rxData || []).filter(rx =>
+        rx.context && rx.context.startsWith('ACUITY_TEST')
+      )
+      setPrescriptions(acuityRx)
+    })
       .catch(e => setError(e.message || 'Failed to load acuity data'))
       .finally(() => setLoading(false))
   }
@@ -132,6 +141,10 @@ export default function Acuity() {
   const latest = results[0] ?? null
   const latestScore = SNELLEN_MAP[latest?.snellen_fraction] ?? null
   const latestZone = toZone(latestScore)
+
+  const latestRx = prescriptions.find(rx =>
+    rx.context?.includes(latest?.snellen_fraction)
+  )
 
   const chartData = [...results].reverse().map((r, i) => ({
     i, time: r.timestamp ? new Date(r.timestamp).toLocaleDateString() : `#${i}`,
@@ -199,6 +212,35 @@ export default function Acuity() {
               ))}
             </div>
           </div>
+          {latestRx && (
+            <div style={{
+              marginTop: '16px',
+              paddingTop: '16px',
+              borderTop: '1px solid var(--border-subtle)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px',
+            }}>
+              <span style={{
+                fontFamily: 'var(--font-mono)',
+                fontSize: '10px',
+                letterSpacing: '0.12em',
+                textTransform: 'uppercase',
+                color: 'var(--text-muted)',
+              }}>
+                RECOMMENDATION
+              </span>
+              <p style={{
+                fontFamily: 'var(--font-dm)',
+                fontSize: '14px',
+                color: 'var(--text-secondary)',
+                lineHeight: 1.6,
+                margin: 0,
+              }}>
+                {latestRx.prescription_text}
+              </p>
+            </div>
+          )}
         </GlassCard>
       ) : (
         <GlassCard>
@@ -296,6 +338,87 @@ export default function Acuity() {
                     </td>
                   </tr>
                 ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </GlassCard>
+
+      {/* ── ACUITY PRESCRIPTIONS LOG ── */}
+      <GlassCard>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>ACUITY PRESCRIPTIONS</span>
+          <span style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', fontSize: '12px' }}>{prescriptions.length} records</span>
+        </div>
+        {prescriptions.length === 0 ? (
+          <div className="flex flex-col items-center gap-3 py-8">
+            <Eye size={28} style={{ color: 'var(--text-muted)' }} />
+            <p style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-dm)', fontSize: '14px' }}>No acuity prescriptions yet</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full" style={{ borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+                  {['DATE', 'RESULT', 'TIER', 'RECOMMENDATION'].map(h => (
+                    <th key={h} className="text-left pb-3 pr-6 text-xs tracking-widest uppercase"
+                      style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', fontWeight: 500 }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {prescriptions.map((rx, i) => {
+                  const fraction = rx.context?.match(/\(([^)]+)\)/)?.[1] ?? '—'
+                  const score = SNELLEN_MAP[fraction] ?? null
+                  const zone = toZone(score)
+                  // Map zone / fraction to pill style
+                  const tierMap = {
+                    '20/20':  { label: 'EXCELLENT', bg: 'rgba(34,197,94,0.12)',  border: 'rgba(34,197,94,0.35)',  color: 'var(--zone-green)' },
+                    '20/25':  { label: 'GOOD',      bg: 'rgba(34,197,94,0.12)',  border: 'rgba(34,197,94,0.35)',  color: 'var(--zone-green)' },
+                    '20/30':  { label: 'MILD',      bg: 'rgba(234,179,8,0.12)',  border: 'rgba(234,179,8,0.35)',  color: 'var(--zone-yellow)' },
+                    '20/40':  { label: 'MILD',      bg: 'rgba(234,179,8,0.12)',  border: 'rgba(234,179,8,0.35)',  color: 'var(--zone-yellow)' },
+                    '20/50':  { label: 'MODERATE',  bg: 'rgba(249,115,22,0.12)', border: 'rgba(249,115,22,0.35)', color: '#f97316' },
+                    '20/70':  { label: 'MODERATE',  bg: 'rgba(249,115,22,0.12)', border: 'rgba(249,115,22,0.35)', color: '#f97316' },
+                    '20/100': { label: 'SEVERE',    bg: 'rgba(239,68,68,0.12)',  border: 'rgba(239,68,68,0.35)',  color: 'var(--zone-red)' },
+                    '20/200': { label: 'SEVERE',    bg: 'rgba(239,68,68,0.12)',  border: 'rgba(239,68,68,0.35)',  color: 'var(--zone-red)' },
+                    'NONE':   { label: 'CRITICAL',  bg: 'rgba(239,68,68,0.15)',  border: 'rgba(239,68,68,0.45)',  color: 'var(--zone-critical)' },
+                  }
+                  const tier = tierMap[fraction] ?? { label: zone, bg: 'rgba(239,68,68,0.12)', border: 'rgba(239,68,68,0.35)', color: 'var(--zone-red)' }
+                  const rec = rx.prescription_text ?? '—'
+                  const recTrunc = rec.length > 100 ? rec.slice(0, 100) + '…' : rec
+                  return (
+                    <tr key={rx.id ?? i} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+                      <td className="py-3 pr-6 text-xs" style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap' }}>
+                        {new Date(rx.timestamp).toLocaleString()}
+                      </td>
+                      <td className="py-3 pr-6 text-sm font-bold" style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-primary)' }}>
+                        {fraction}
+                      </td>
+                      <td className="py-3 pr-6">
+                        <span style={{
+                          display: 'inline-block',
+                          padding: '2px 8px',
+                          borderRadius: '9999px',
+                          fontSize: '10px',
+                          fontFamily: 'var(--font-mono)',
+                          fontWeight: 600,
+                          letterSpacing: '0.08em',
+                          textTransform: 'uppercase',
+                          background: tier.bg,
+                          border: `1px solid ${tier.border}`,
+                          color: tier.color,
+                        }}>
+                          {tier.label}
+                        </span>
+                      </td>
+                      <td className="py-3 pr-6" style={{ maxWidth: '320px' }}>
+                        <span title={rec} style={{ fontFamily: 'var(--font-dm)', fontSize: '12px', color: 'var(--text-secondary)' }}>
+                          {recTrunc}
+                        </span>
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>
