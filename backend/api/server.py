@@ -1,5 +1,5 @@
 """
-GazeAware — Phase 2.4: FastAPI Server
+GazeAware — Phase 2.4: FastAPI Server (with Authentication)
 """
 
 import asyncio
@@ -8,18 +8,21 @@ import math
 import time
 import cv2
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, Optional
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends, HTTPException, Header
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
 
 from backend.api import shared_state as _state
+from backend.auth import hash_password, verify_password, create_access_token, decode_token
 from backend.database.db import SessionLocal
 from backend.database.models import (
     Prescription as DBPrescription,
     SignalLog      as DBSignalLog,
     WeeklyReport   as DBWeeklyReport,
+    User           as DBUser,
 )
 from backend.vision_acuity.degradation_tracker import get_degradation_report
 
@@ -33,6 +36,41 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+# ── Pydantic request models ─────────────────────────────────────────────────────
+
+class RegisterRequest(BaseModel):
+    username: str
+    password: str
+    email: Optional[str] = None
+
+
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+
+# ── Auth dependency ─────────────────────────────────────────────────────────────
+
+def get_current_user(authorization: Optional[str] = Header(None)) -> dict:
+    """
+    FastAPI dependency — extracts and validates JWT from
+    Authorization: Bearer <token> header.
+    Raises 401 if missing or invalid.
+    """
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    token = authorization.split(" ", 1)[1]
+    payload = decode_token(token)
+    if not payload:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+    return {
+        "user_id":  int(payload["sub"]),
+        "username": payload["username"],
+    }
+
+
+# ── Helpers ─────────────────────────────────────────────────────────────────────
 
 def _safe_float(value, fallback=None):
     try:
@@ -53,6 +91,85 @@ def _row_to_dict(row: Any) -> dict:
     return d
 
 
+# ── Auth endpoints ──────────────────────────────────────────────────────────────
+
+@app.post("/auth/register")
+async def register(req: RegisterRequest) -> dict:
+    db = SessionLocal()
+    try:
+        # Check username taken
+        existing = db.query(DBUser).filter(
+            DBUser.username == req.username
+        ).first()
+        if existing:
+            raise HTTPException(status_code=400, detail="Username already taken")
+        # Check email taken if provided
+        if req.email:
+            existing_email = db.query(DBUser).filter(
+                DBUser.email == req.email
+            ).first()
+            if existing_email:
+                raise HTTPException(status_code=400, detail="Email already registered")
+        # Create user
+        user = DBUser(
+            username      = req.username,
+            email         = req.email or None,
+            password_hash = hash_password(req.password),
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+        token = create_access_token(user.id, user.username)
+        return {
+            "token":    token,
+            "user_id":  user.id,
+            "username": user.username,
+        }
+    finally:
+        db.close()
+
+
+@app.post("/auth/login")
+async def login(req: LoginRequest) -> dict:
+    db = SessionLocal()
+    try:
+        user = db.query(DBUser).filter(
+            DBUser.username == req.username
+        ).first()
+        if not user or not verify_password(req.password, user.password_hash):
+            raise HTTPException(status_code=401, detail="Invalid username or password")
+        if not user.is_active:
+            raise HTTPException(status_code=403, detail="Account disabled")
+        token = create_access_token(user.id, user.username)
+        return {
+            "token":    token,
+            "user_id":  user.id,
+            "username": user.username,
+            "email":    user.email,
+        }
+    finally:
+        db.close()
+
+
+@app.get("/auth/me")
+async def me(current_user: dict = Depends(get_current_user)) -> dict:
+    db = SessionLocal()
+    try:
+        user = db.query(DBUser).filter(
+            DBUser.id == current_user["user_id"]
+        ).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        return {
+            "user_id":    user.id,
+            "username":   user.username,
+            "email":      user.email,
+            "created_at": user.created_at.isoformat() if user.created_at else None,
+        }
+    finally:
+        db.close()
+
+
 # ── REST endpoints ─────────────────────────────────────────────────────────────
 
 @app.get("/health")
@@ -61,7 +178,7 @@ async def health() -> dict:
 
 
 @app.get("/session")
-async def session_info() -> dict:
+async def session_info(current_user: dict = Depends(get_current_user)) -> dict:
     s = _state.state
     return {
         "session_id":        s.get("session_id"),
@@ -76,11 +193,28 @@ async def snapshot() -> dict:
 
 
 @app.get("/history/prescriptions")
-async def history_prescriptions() -> list:
+async def history_prescriptions(
+    current_user: dict = Depends(get_current_user)
+) -> list:
     db = SessionLocal()
     try:
-        rows = db.query(DBPrescription).order_by(DBPrescription.id.desc()).limit(50).all()
-        return [_row_to_dict(r) for r in rows]
+        from sqlalchemy import text
+        rows = db.execute(
+            text(
+                "SELECT p.id, p.session_id, p.timestamp, p.strain_score, "
+                "p.context, p.triggered_signals, p.prescription_text, "
+                "p.recovery_confirmed, p.recovery_time_seconds "
+                "FROM prescriptions p "
+                "JOIN sessions s ON p.session_id = s.id "
+                "WHERE s.user_id = :uid OR s.user_id IS NULL "
+                "ORDER BY p.id DESC LIMIT 50"
+            ),
+            {"uid": current_user["user_id"]}
+        ).fetchall()
+        keys = ["id", "session_id", "timestamp", "strain_score",
+                "context", "triggered_signals", "prescription_text",
+                "recovery_confirmed", "recovery_time_seconds"]
+        return [dict(zip(keys, row)) for row in rows]
     except Exception:
         return []
     finally:
@@ -88,11 +222,32 @@ async def history_prescriptions() -> list:
 
 
 @app.get("/history/signals")
-async def history_signals() -> list:
+async def history_signals(
+    current_user: dict = Depends(get_current_user)
+) -> list:
     db = SessionLocal()
     try:
-        rows = db.query(DBSignalLog).order_by(DBSignalLog.id.desc()).limit(500).all()
-        return [_row_to_dict(r) for r in rows]
+        from sqlalchemy import text
+        rows = db.execute(
+            text(
+                "SELECT sl.id, sl.session_id, sl.timestamp, sl.blink_rate, "
+                "sl.blink_quality, sl.screen_distance, sl.squint_ratio, "
+                "sl.gaze_entropy, sl.blink_irregularity, sl.eye_rubbing, "
+                "sl.posture_lean, sl.scleral_redness, sl.strain_score, "
+                "sl.lighting_score, sl.distance_drift_cm, sl.blink_partial_ratio "
+                "FROM signal_logs sl "
+                "JOIN sessions s ON sl.session_id = s.id "
+                "WHERE s.user_id = :uid OR s.user_id IS NULL "
+                "ORDER BY sl.id DESC LIMIT 500"
+            ),
+            {"uid": current_user["user_id"]}
+        ).fetchall()
+        keys = ["id", "session_id", "timestamp", "blink_rate",
+                "blink_quality", "screen_distance", "squint_ratio",
+                "gaze_entropy", "blink_irregularity", "eye_rubbing",
+                "posture_lean", "scleral_redness", "strain_score",
+                "lighting_score", "distance_drift_cm", "blink_partial_ratio"]
+        return [dict(zip(keys, row)) for row in rows]
     except Exception:
         return []
     finally:
@@ -100,7 +255,9 @@ async def history_signals() -> list:
 
 
 @app.get("/history/acuity")
-async def history_acuity() -> list:
+async def history_acuity(
+    current_user: dict = Depends(get_current_user)
+) -> list:
     db = SessionLocal()
     try:
         from sqlalchemy import text
@@ -108,8 +265,9 @@ async def history_acuity() -> list:
             text(
                 "SELECT id, timestamp, snellen_fraction, last_row_passed, "
                 "distance_cm, cheat_detected, squint_detected, session_id "
-                "FROM acuity_logs ORDER BY id DESC"
-            )
+                "FROM acuity_logs WHERE user_id = :uid OR user_id IS NULL ORDER BY id DESC"
+            ),
+            {"uid": current_user["user_id"]}
         ).fetchall()
         keys = ["id", "timestamp", "snellen_fraction", "last_row_passed",
                 "distance_cm", "cheat_detected", "squint_detected", "session_id"]
@@ -146,42 +304,63 @@ async def report_weekly() -> list:
 
 
 @app.get("/report/session_summary")
-async def session_summary() -> dict:
+async def session_summary(
+    current_user: dict = Depends(get_current_user)
+) -> dict:
     """
-    Compute a live session summary from signal_logs and prescriptions tables.
+    Compute a live session summary from signal_logs and prescriptions tables,
+    filtered by the authenticated user.
     """
     db = SessionLocal()
     try:
         from sqlalchemy import text
+        uid = current_user["user_id"]
 
-        # Total sessions
+        # Sessions for this user
         sessions = db.execute(
-            text("SELECT id, start_time, end_time, "
-                 "peak_strain_score, avg_strain_score "
-                 "FROM sessions ORDER BY id DESC LIMIT 20")
+            text(
+                "SELECT id, start_time, end_time, "
+                "peak_strain_score, avg_strain_score "
+                "FROM sessions WHERE user_id = :uid OR user_id IS NULL ORDER BY id DESC LIMIT 20"
+            ),
+            {"uid": uid}
         ).fetchall()
 
-        # Prescription counts by type
+        # Prescription counts by type (user's sessions)
         rx_rows = db.execute(
-            text("SELECT context, COUNT(*) as cnt "
-                 "FROM prescriptions GROUP BY context")
+            text(
+                "SELECT p.context, COUNT(*) as cnt "
+                "FROM prescriptions p "
+                "JOIN sessions s ON p.session_id = s.id "
+                "WHERE s.user_id = :uid OR s.user_id IS NULL "
+                "GROUP BY p.context"
+            ),
+            {"uid": uid}
         ).fetchall()
 
-        # Acuity results
+        # Acuity results for this user
         acuity_rows = db.execute(
-            text("SELECT snellen_fraction, last_row_passed, "
-                 "timestamp FROM acuity_logs ORDER BY id DESC")
+            text(
+                "SELECT snellen_fraction, last_row_passed, timestamp "
+                "FROM acuity_logs WHERE user_id = :uid OR user_id IS NULL ORDER BY id DESC"
+            ),
+            {"uid": uid}
         ).fetchall()
 
-        # Signal averages across all logs
+        # Signal averages for this user's sessions
         signal_avgs = db.execute(
-            text("SELECT "
-                 "AVG(strain_score) as avg_strain, "
-                 "MAX(strain_score) as peak_strain, "
-                 "AVG(blink_rate) as avg_blink, "
-                 "AVG(squint_ratio) as avg_squint, "
-                 "AVG(screen_distance) as avg_dist "
-                 "FROM signal_logs")
+            text(
+                "SELECT "
+                "AVG(sl.strain_score) as avg_strain, "
+                "MAX(sl.strain_score) as peak_strain, "
+                "AVG(sl.blink_rate) as avg_blink, "
+                "AVG(sl.squint_ratio) as avg_squint, "
+                "AVG(sl.screen_distance) as avg_dist "
+                "FROM signal_logs sl "
+                "JOIN sessions s ON sl.session_id = s.id "
+                "WHERE s.user_id = :uid OR s.user_id IS NULL"
+            ),
+            {"uid": uid}
         ).fetchone()
 
         session_list = []

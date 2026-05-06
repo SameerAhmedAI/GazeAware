@@ -15,6 +15,17 @@ from sqlalchemy import Column, Integer, Float, String, DateTime, Date, ForeignKe
 from backend.database.db import Base
 
 
+class User(Base):
+    __tablename__ = "users"
+
+    id            = Column(Integer, primary_key=True, autoincrement=True)
+    username      = Column(String, unique=True, nullable=False, index=True)
+    email         = Column(String, unique=True, nullable=True, index=True)
+    password_hash = Column(String, nullable=False)
+    created_at    = Column(DateTime, default=_utcnow)
+    is_active     = Column(Integer, default=1)  # 0 = banned, 1 = active
+
+
 class Session(Base):
     __tablename__ = "sessions"
 
@@ -26,6 +37,7 @@ class Session(Base):
     baseline_distance   = Column(Float, nullable=True)
     peak_strain_score   = Column(Float, default=0.0)
     avg_strain_score    = Column(Float, default=0.0)
+    user_id             = Column(Integer, ForeignKey("users.id"), nullable=True)
 
 
 class SignalLog(Base):
@@ -87,3 +99,4 @@ class AcuityLog(Base):
     cheat_detected   = Column(Integer, default=0)       # 0 or 1
     squint_detected  = Column(Integer, default=0)       # 0 or 1
     session_id       = Column(Integer, ForeignKey("sessions.id"), nullable=True)
+    user_id          = Column(Integer, ForeignKey("users.id"), nullable=True)

@@ -473,4 +473,24 @@ Developed a React-based frontend using Vite to replace previous console and over
 | `.gitignore` | **UPDATED** — Merged frontend-specific gitignore rules into the root project file. |
 | `AI_CONTEXT.md` & `README.md` | **UPDATED** — Documented the new frontend structure and Phase 3 completion. |
 
-*Last updated: Phase 3 completion (React Frontend Dark UI)*
+---
+
+### ✅ Phase 4 — Multi-User Login System (Complete)
+
+**Overview:**
+Introduced a complete authentication system backed by JWTs and bcrypt password hashing. Added a `users` table to the SQLite database to isolate data per user while maintaining compatibility with background desktop sessions. Built dark-themed React Login and Register pages.
+
+**Files created/modified in Phase 4:**
+
+| File | What changed |
+|------|-------------|
+| `backend/auth.py` | **NEW** — JWT token creation and verification, password hashing using `passlib[bcrypt]`. |
+| `backend/database/models.py` | **UPDATED** — Added `User` SQLAlchemy model. Added nullable `user_id` foreign keys to `Session` and `AcuityLog`. |
+| `backend/api/server.py` | **UPDATED** — Added `/auth/register`, `/auth/login`, and `/auth/me` endpoints. Protected REST data endpoints with `get_current_user` JWT dependency. Modified queries to return rows where `user_id = uid OR user_id IS NULL` to show both personal and desktop-app sessions. |
+| `frontend/src/services/api.js` | **UPDATED** — Added `authFetch` wrapper to automatically inject `Authorization: Bearer` headers. Handles 401 unauthenticated redirects. |
+| `frontend/src/pages/Login.jsx` | **NEW** — Glassmorphic dark UI login page. |
+| `frontend/src/pages/Register.jsx` | **NEW** — Registration page with inline field validation (length, password matching). |
+| `frontend/src/App.jsx` | **UPDATED** — Added `PrivateRoute` component to protect dashboard routes checking `localStorage` for tokens. |
+| `frontend/src/layouts/AppLayout.jsx` | **UPDATED** — Added user display string and interactive "Sign Out" button to the bottom of the sidebar. |
+
+*Last updated: Phase 4 completion (Multi-User Login System)*

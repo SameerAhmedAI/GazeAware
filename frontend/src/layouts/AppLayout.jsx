@@ -1,5 +1,6 @@
 import { NavLink, Outlet } from 'react-router-dom'
-import { LayoutDashboard, History, Eye, BarChart2, GitBranch } from 'lucide-react'
+import { LayoutDashboard, History, Eye, BarChart2, GitBranch, LogOut } from 'lucide-react'
+import { api } from '../services/api'
 
 const NAV_ITEMS = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -9,6 +10,7 @@ const NAV_ITEMS = [
 ]
 
 export default function AppLayout() {
+  const user = JSON.parse(localStorage.getItem('gazeaware_user') || '{}')
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--bg-base)' }}>
 
@@ -136,14 +138,64 @@ export default function AppLayout() {
           ))}
         </nav>
 
-        {/* ── Bottom — GitHub link ──────────────────────────────────── */}
+        {/* ── Bottom — User + Logout + GitHub ─────────────────────── */}
         <div
           style={{
             flexShrink: 0,
             padding: '12px 10px 20px',
             borderTop: '1px solid rgba(255,255,255,0.05)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '6px',
           }}
         >
+          {/* Signed-in user */}
+          {user.username && (
+            <div style={{
+              padding: '6px 12px',
+              fontFamily: 'var(--font-dm)',
+              fontSize: '11px',
+              color: 'var(--text-muted)',
+              letterSpacing: '0.01em',
+            }}>
+              Signed in as <span style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>{user.username}</span>
+            </div>
+          )}
+
+          {/* Sign Out button */}
+          <button
+            id="sidebar-signout"
+            onClick={() => api.logout()}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '9px 12px',
+              borderRadius: '10px',
+              fontSize: '12px',
+              fontFamily: 'var(--font-dm)',
+              textDecoration: 'none',
+              color: 'var(--text-muted)',
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              transition: 'color 0.18s, background 0.18s',
+              width: '100%',
+              textAlign: 'left',
+              boxSizing: 'border-box',
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.color = 'var(--zone-red)'
+              e.currentTarget.style.background = 'rgba(239,68,68,0.06)'
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.color = 'var(--text-muted)'
+              e.currentTarget.style.background = 'transparent'
+            }}
+          >
+            <LogOut size={14} style={{ flexShrink: 0 }} />
+            Sign Out
+          </button>
           <a
             href="https://github.com/SameerAhmedAI/GazeAware"
             target="_blank"
