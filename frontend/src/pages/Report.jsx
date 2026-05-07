@@ -386,39 +386,41 @@ export default function Report() {
             </p>
           </div>
         </div>
-        <button onClick={fetchData} style={{
-          display: 'inline-flex', alignItems: 'center', gap: '6px',
-          padding: '8px 16px', borderRadius: '10px', fontSize: '12px',
-          fontFamily: 'var(--font-dm)', cursor: 'pointer',
-          background: 'var(--bg-surface)', color: 'var(--text-muted)',
-          border: '1px solid var(--border-default)',
-        }}>
-          <RefreshCw size={13} /> Refresh
-        </button>
-        <button
-          onClick={handleDownloadPDF}
-          disabled={pdfLoading || !summary}
-          style={{
-            display: 'inline-flex', alignItems: 'center', gap: '8px',
-            padding: '8px 16px', borderRadius: '10px', fontSize: '13px',
-            fontFamily: 'var(--font-dm)', fontWeight: 500,
-            cursor: (pdfLoading || !summary) ? 'not-allowed' : 'pointer',
-            background: 'var(--bg-elevated)', color: 'var(--text-primary)',
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <button onClick={fetchData} style={{
+            display: 'inline-flex', alignItems: 'center', gap: '6px',
+            padding: '8px 16px', borderRadius: '10px', fontSize: '12px',
+            fontFamily: 'var(--font-dm)', cursor: 'pointer',
+            background: 'var(--bg-surface)', color: 'var(--text-muted)',
             border: '1px solid var(--border-default)',
-            opacity: !summary ? 0.5 : 1,
-            transition: 'all 0.2s',
-          }}
-        >
-          {pdfLoading
-            ? <span style={{
-                width: '12px', height: '12px', borderRadius: '50%',
-                border: '2px solid var(--accent)', borderTopColor: 'transparent',
-                display: 'inline-block', animation: 'spin 0.8s linear infinite',
-              }} />
-            : <Download size={14} />
-          }
-          {pdfLoading ? 'Generating...' : 'Download PDF'}
-        </button>
+          }}>
+            <RefreshCw size={13} /> Refresh
+          </button>
+          <button
+            onClick={handleDownloadPDF}
+            disabled={pdfLoading || !summary}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: '8px',
+              padding: '8px 16px', borderRadius: '10px', fontSize: '13px',
+              fontFamily: 'var(--font-dm)', fontWeight: 500,
+              cursor: (pdfLoading || !summary) ? 'not-allowed' : 'pointer',
+              background: 'var(--bg-elevated)', color: 'var(--text-primary)',
+              border: '1px solid var(--border-default)',
+              opacity: !summary ? 0.5 : 1,
+              transition: 'all 0.2s',
+            }}
+          >
+            {pdfLoading
+              ? <span style={{
+                  width: '12px', height: '12px', borderRadius: '50%',
+                  border: '2px solid var(--accent)', borderTopColor: 'transparent',
+                  display: 'inline-block', animation: 'spin 0.8s linear infinite',
+                }} />
+              : <Download size={14} />
+            }
+            {pdfLoading ? 'Generating...' : 'Download PDF'}
+          </button>
+        </div>
       </div>
 
       {/* ── 4 stat cards ── */}
