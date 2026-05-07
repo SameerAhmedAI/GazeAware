@@ -28,7 +28,7 @@ const SIGNALS = [
 const HOW_IT_WORKS = [
   { step: '01', title: 'Webcam Capture', desc: '30 FPS webcam input processed by MediaPipe Face Mesh — 468 facial landmarks tracked in real time. No video is ever stored or uploaded. All processing runs entirely on your local CPU with zero cloud dependency.' },
   { step: '02', title: 'Signal Fusion', desc: '11 simultaneous eye, behavioral, and environmental signals — including blink rate, blink quality, squint detection, posture drift, ambient lighting, gaze entropy, and tear-film stability — fused with calibrated weights into a live 0–100 strain score updated every 500ms.' },
-  { step: '03', title: 'Smart Response', desc: 'AI prescriptions powered by Groq\'s LLaMA 3.1 engine fire automatically when strain is elevated. On-demand Digital Visual Acuity tests track long-term vision health. Weekly strain reports deliver personalized ergonomic recommendations. Everything stays 100% local.' },
+  { step: '03', title: 'Smart Response', desc: 'AI prescriptions powered by Local LLM TinyLlama 1.1B fire automatically when strain is elevated. On-demand Digital Visual Acuity tests track long-term vision health. Weekly strain reports deliver personalized ergonomic recommendations. Everything stays 100% local.' },
 ]
 
 /* ─── inline style helpers ─────────────────────────────────────────────────── */
@@ -637,7 +637,7 @@ export default function Landing() {
               Project
             </span>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '7px' }}>
-              {['Python 3.11+', 'MediaPipe', 'OpenCV', 'FastAPI', 'React', 'Groq LLaMA 3.1'].map(item => (
+              {['Python 3.11+', 'MediaPipe', 'OpenCV', 'FastAPI', 'React', 'TinyLlama 1.1B'].map(item => (
                 <span key={item} style={{ fontFamily: 'var(--font-dm)', fontSize: '13px', color: 'var(--text-secondary)' }}>
                   · {item}
                 </span>
