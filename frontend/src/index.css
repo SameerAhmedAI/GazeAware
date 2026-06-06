@@ -5,111 +5,266 @@
   --font-dm: 'DM Sans', sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
 
-  --color-bg-void: #050507;
-  --color-bg-base: #09090f;
-  --color-bg-surface: #0f0f17;
-  --color-bg-elevated: #14141e;
-  --color-bg-overlay: #1a1a26;
-  --color-border-subtle: #1e1e2e;
-  --color-border-default: #2a2a3d;
-  --color-border-active: #3d3d5c;
-  --color-text-primary: #f0f0f8;
-  --color-text-secondary: #8888aa;
-  --color-text-muted: #44445a;
-  --color-accent: #e8e8f8;
-  --color-accent-dim: #9090b8;
-  --color-zone-green: #10b981;
-  --color-zone-yellow: #f59e0b;
-  --color-zone-red: #ef4444;
-  --color-zone-critical: #dc2626;
+  --color-bg-void: #020204;
+  --color-bg-base: #06060c;
+  --color-bg-surface: #0c0c16;
+  --color-bg-elevated: #111120;
+  --color-bg-overlay: #16162a;
+  --color-border-subtle: #1a1a2e;
+  --color-border-default: #252540;
+  --color-border-active: #383860;
+  --color-text-primary: #eeeef8;
+  --color-text-secondary: #7878a0;
+  --color-text-muted: #383858;
+  --color-accent: #e0e0f8;
+  --color-accent-dim: #8080b8;
+  --color-zone-green: #00e5a0;
+  --color-zone-yellow: #ffb800;
+  --color-zone-red: #ff4455;
+  --color-zone-critical: #ff1a2e;
 }
 
 :root {
-  --bg-void: #050507;
-  --bg-base: #09090f;
-  --bg-surface: #0f0f17;
-  --bg-elevated: #14141e;
-  --bg-overlay: #1a1a26;
-  --border-subtle: #1e1e2e;
-  --border-default: #2a2a3d;
-  --border-active: #3d3d5c;
-  --text-primary: #f0f0f8;
-  --text-secondary: #8888aa;
-  --text-muted: #44445a;
-  --accent: #e8e8f8;
-  --accent-dim: #9090b8;
-  --accent-glow: rgba(232, 232, 248, 0.08);
-  --zone-green: #10b981;
-  --zone-green-bg: rgba(16, 185, 129, 0.08);
-  --zone-green-border: rgba(16, 185, 129, 0.25);
-  --zone-yellow: #f59e0b;
-  --zone-yellow-bg: rgba(245, 158, 11, 0.08);
-  --zone-yellow-border: rgba(245, 158, 11, 0.25);
-  --zone-red: #ef4444;
-  --zone-red-bg: rgba(239, 68, 68, 0.08);
-  --zone-red-border: rgba(239, 68, 68, 0.25);
-  --zone-critical: #dc2626;
-  --zone-critical-bg: rgba(220, 38, 38, 0.12);
-  --zone-critical-border: rgba(220, 38, 38, 0.4);
+  --bg-void: #020204;
+  --bg-base: #06060c;
+  --bg-surface: #0c0c16;
+  --bg-elevated: #111120;
+  --bg-overlay: #16162a;
+
+  --border-subtle: #1a1a2e;
+  --border-default: #252540;
+  --border-active: #383860;
+
+  --text-primary: #eeeef8;
+  --text-secondary: #7878a0;
+  --text-muted: #383858;
+
+  --accent: #e0e0f8;
+  --accent-dim: #8080b8;
+  --accent-glow: rgba(224, 224, 248, 0.07);
+
+  --zone-green: #00e5a0;
+  --zone-green-bg: rgba(0, 229, 160, 0.07);
+  --zone-green-border: rgba(0, 229, 160, 0.22);
+  --zone-green-glow: rgba(0, 229, 160, 0.35);
+
+  --zone-yellow: #ffb800;
+  --zone-yellow-bg: rgba(255, 184, 0, 0.07);
+  --zone-yellow-border: rgba(255, 184, 0, 0.22);
+  --zone-yellow-glow: rgba(255, 184, 0, 0.35);
+
+  --zone-red: #ff4455;
+  --zone-red-bg: rgba(255, 68, 85, 0.07);
+  --zone-red-border: rgba(255, 68, 85, 0.22);
+  --zone-red-glow: rgba(255, 68, 85, 0.35);
+
+  --zone-critical: #ff1a2e;
+  --zone-critical-bg: rgba(255, 26, 46, 0.10);
+  --zone-critical-border: rgba(255, 26, 46, 0.45);
+  --zone-critical-glow: rgba(255, 26, 46, 0.55);
 }
 
+/* ─── Keyframes ──────────────────────────────────────────────────────────── */
+
 @keyframes pulse-critical {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
-  50% { box-shadow: 0 0 20px 4px rgba(220, 38, 38, 0.35); }
+
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 26, 46, 0);
+  }
+
+  50% {
+    box-shadow: 0 0 28px 6px rgba(255, 26, 46, 0.40);
+  }
 }
 
 @keyframes pulse-live {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.4; transform: scale(0.85); }
+
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.35;
+    transform: scale(0.8);
+  }
 }
 
 @keyframes fade-in-up {
-  from { opacity: 0; transform: translateY(16px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes number-glow {
-  0%, 100% { text-shadow: 0 0 0px rgba(240, 240, 248, 0); }
-  50% { text-shadow: 0 0 24px rgba(240, 240, 248, 0.4); }
+
+  0%,
+  100% {
+    text-shadow: 0 0 0px transparent;
+  }
+
+  50% {
+    text-shadow: 0 0 30px rgba(224, 224, 248, 0.45);
+  }
 }
 
 @keyframes spin-ring {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @keyframes slide-in-right {
-  from { opacity: 0; transform: translateX(24px); }
-  to { opacity: 1; transform: translateX(0); }
+  from {
+    opacity: 0;
+    transform: translateX(28px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 @keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+  0% {
+    background-position: -200% 0;
+  }
+
+  100% {
+    background-position: 200% 0;
+  }
 }
 
 @keyframes pulse-dot-red {
-  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.6); }
-  50% { opacity: 0.65; box-shadow: 0 0 0 4px rgba(239, 68, 68, 0); }
+
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 rgba(255, 68, 85, 0.6);
+  }
+
+  50% {
+    opacity: 0.6;
+    box-shadow: 0 0 0 5px rgba(255, 68, 85, 0);
+  }
 }
 
 @keyframes camera-dash-pulse {
-  0%, 100% { opacity: 0.35; }
-  50% { opacity: 0.75; }
+
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+
+  50% {
+    opacity: 0.7;
+  }
 }
 
 @keyframes fade-in {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-* {
+@keyframes scan-line {
+  0% {
+    transform: translateX(-100%);
+  }
+
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes border-march {
+  0% {
+    stroke-dashoffset: 0;
+  }
+
+  100% {
+    stroke-dashoffset: -40;
+  }
+}
+
+@keyframes radar-pulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+
+  100% {
+    transform: scale(2.8);
+    opacity: 0;
+  }
+}
+
+@keyframes corner-glow {
+
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+
+  50% {
+    opacity: 1.0;
+  }
+}
+
+@keyframes hud-flicker {
+
+  0%,
+  98%,
+  100% {
+    opacity: 1;
+  }
+
+  99% {
+    opacity: 0.85;
+  }
+}
+
+@keyframes tick-sweep {
+  from {
+    stroke-dashoffset: 0;
+  }
+
+  to {
+    stroke-dashoffset: -600;
+  }
+}
+
+/* ─── Reset ──────────────────────────────────────────────────────────────── */
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
-html, body, #root {
+html,
+body,
+#root {
   height: 100%;
   background-color: var(--bg-base);
 }
@@ -121,30 +276,151 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Scrollbar */
-::-webkit-scrollbar { width: 4px; height: 4px; }
-::-webkit-scrollbar-track { background: var(--bg-surface); }
-::-webkit-scrollbar-thumb { background: var(--border-active); border-radius: 2px; }
+/* Grid-dot background on #root */
+#root {
+  background-image:
+    radial-gradient(circle at 50% 0%, rgba(0, 229, 160, 0.03) 0%, transparent 60%),
+    radial-gradient(circle, rgba(255, 255, 255, 0.018) 1px, transparent 1px);
+  background-size: 100% 100%, 32px 32px;
+}
 
-/* Animations as utility classes */
-.animate-pulse-critical    { animation: pulse-critical 2s infinite; }
-.animate-pulse-live        { animation: pulse-live 1.5s infinite; }
-.animate-fade-in-up        { animation: fade-in-up 0.5s ease-out both; }
-.animate-number-glow       { animation: number-glow 2s infinite; }
-.animate-spin-ring         { animation: spin-ring 1s linear infinite; }
-.animate-slide-in-right    { animation: slide-in-right 0.4s ease-out both; }
-.animate-pulse-dot-red     { animation: pulse-dot-red 1.5s ease-in-out infinite; }
-.animate-camera-dash-pulse { animation: camera-dash-pulse 2s ease-in-out infinite; }
-.animate-fade-in           { animation: fade-in 0.3s ease-out both; }
+/* Subtle scanline overlay on body */
+body::after {
+  content: '';
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(0deg,
+      transparent,
+      transparent 2px,
+      rgba(0, 0, 0, 0.10) 2px,
+      rgba(0, 0, 0, 0.10) 4px);
+  z-index: 9999;
+  opacity: 0.35;
+}
 
-/* Recharts overrides */
+/* ─── Scrollbar ──────────────────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 3px;
+  height: 3px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-surface);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-active);
+  border-radius: 2px;
+}
+
+/* ─── Animation utilities ────────────────────────────────────────────────── */
+.animate-pulse-critical {
+  animation: pulse-critical 2s infinite;
+}
+
+.animate-pulse-live {
+  animation: pulse-live 1.5s infinite;
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.5s ease-out both;
+}
+
+.animate-number-glow {
+  animation: number-glow 2s infinite;
+}
+
+.animate-spin-ring {
+  animation: spin-ring 1s linear infinite;
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right 0.4s ease-out both;
+}
+
+.animate-pulse-dot-red {
+  animation: pulse-dot-red 1.5s ease-in-out infinite;
+}
+
+.animate-camera-dash-pulse {
+  animation: camera-dash-pulse 2s ease-in-out infinite;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out both;
+}
+
+.animate-hud-flicker {
+  animation: hud-flicker 8s infinite;
+}
+
+/* ─── Corner-cut card ────────────────────────────────────────────────────── */
+/*  Usage: add class "card-cut" to a GlassCard wrapper div                   */
+.card-cut {
+  position: relative;
+  clip-path: polygon(0 0,
+      calc(100% - 14px) 0,
+      100% 14px,
+      100% 100%,
+      14px 100%,
+      0 calc(100% - 14px));
+}
+
+.card-cut::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  clip-path: inherit;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Corner accent dots */
+.card-cut::after {
+  content: '';
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--zone-green);
+  opacity: 0.5;
+  animation: corner-glow 3s infinite;
+  z-index: 2;
+}
+
+/* ─── Recharts ───────────────────────────────────────────────────────────── */
 .recharts-tooltip-wrapper .recharts-default-tooltip {
   background: var(--bg-elevated) !important;
   border: 1px solid var(--border-default) !important;
   border-radius: 8px !important;
 }
+
 .recharts-cartesian-axis-tick-value {
   fill: var(--text-muted) !important;
   font-family: 'JetBrains Mono', monospace !important;
   font-size: 11px !important;
+}
+
+/* ─── Section label ──────────────────────────────────────────────────────── */
+.section-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.section-label::before {
+  content: '';
+  display: block;
+  width: 18px;
+  height: 1px;
+  background: var(--border-active);
 }
