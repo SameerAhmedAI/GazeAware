@@ -1,160 +1,279 @@
-# GazeAware
+<div align="center">
+  <img src="https://github.com/sameerahmedai/GazeAware/blob/main/GazeAware.png" width="500">
+  
+  #
+   
+  <p><b>AI-Powered Passive Eye Strain Monitor</b></p>
 
-> **AI-powered passive eye strain monitor** — webcam only, fully local, zero wearables.
+![Last Commit](https://img.shields.io/github/last-commit/SameerAhmedAI/GazeAware)
+![Python](https://img.shields.io/badge/Python-3.11%2B-blue?logo=python)
+![languages](https://img.shields.io/github/languages/count/SameerAhmedAI/GazeAware)
 
-**Authors:** Sameer Ahmed, Muhammad Ahmed Rayyan, Umul Baneen, Mohan Singh, Basit | **Institution:** SZABIST, Karachi  
-**Status:** Phase 4.1 Complete (Integrated Local LLM & PDF Reporting)  
-**Python:** 3.11+ | **mediapipe:** 0.10.14 | **opencv:** 4.13.0  
+<br>
 
----
+Built with the tools and technologies:  
+![Python](https://img.shields.io/badge/Python-3776AB.svg?style=for-the-badge&logo=python&logoColor=white)
+![OpenCV](https://img.shields.io/badge/OpenCV-5C3EE8.svg?style=for-the-badge&logo=opencv&logoColor=white)
+![Mediapipe](https://img.shields.io/badge/MediaPipe-0097A7.svg?style=for-the-badge&logo=google&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-009688.svg?style=for-the-badge&logo=fastapi&logoColor=white)
+![React](https://img.shields.io/badge/React-%2361DAFB.svg?style=for-the-badge&logo=react&logoColor=black)
+![Vite](https://img.shields.io/badge/Vite-%23646CFF.svg?style=for-the-badge&logo=vite&logoColor=white)
+![SQLite](https://img.shields.io/badge/SQLite-07405E.svg?style=for-the-badge&logo=sqlite&logoColor=white)
+![Groq](https://img.shields.io/badge/Groq-F55036.svg?style=for-the-badge&logo=groq&logoColor=white)
 
-## What is GazeAware?
-
-GazeAware passively monitors digital eye strain in real time using any standard webcam — no wearable device, no hardware purchase, no active user input required.
-
-It tracks **11 simultaneous eye, environmental, and behavioral signals**, fuses them into a live 0–100 strain score, and delivers personalized exercise prescriptions through a Groq-powered LLaMA 3.1 engine. Everything runs **100% locally** — no video is ever stored or uploaded.
-
-### Core Signals Tracked:
-- Blink Rate (High precision per-minute tracking)
-- Blink Quality (State-machine distinguishing full vs. partial lazy closures)
-- Posture / Distance Drift (Monitoring creeping proximity to screen over time)
-- Ambient Lighting Analyzer (Face bounding box extraction to detect backlit, underlit, or uneven conditions)
-- Squint Detection & Gaze Entropy
-- Posture Lean & Eye Rubbing
-- **Digital Visual Acuity Test**: On-demand Snellen charting mapped directly via webcam.
-- **Vision Degradation Tracker**: SQLite-based historical aggregator for tracking declining trends.
-- **Tear-Film Stability Index (TFSI)**: Clinical dry-eye engine with 4-signal weighted scoring and auto-alert.
-- **AI Weekly Strain Report**: Groq-powered 7-day analysis with LLaMA 3.1 ergonomic recommendations.
-- **FastAPI Backend**: Built-in REST API and 500ms WebSocket streams (`/ws/strain`, `/ws/signals`) for real-time frontend integration.
-- **React Frontend**: A clinical dark-themed React UI built with Vite for tracking live statistics, overlays, and user prescriptions.
-- **Multi-User Isolation (Phase 4)**: Built-in user authentication (JWT) allowing multiple users to log into the web dashboard and securely view only their own historical data alongside unassigned background sessions.
-- **Offline LLM (Phase 4.1)**: Fully offline and private fallback engine using TinyLlama running on local CPU via `llama-cpp-python`.
-- **PDF Reporting (Phase 4.1)**: Export full session analytics directly to an elegantly formatted PDF using dynamic `jsPDF` imports on the frontend.
+</div>
 
 ---
 
-## Quick Start
+## 🧠 Project Summary
 
-```powershell
-# 1. Clone the repo
+**GazeAware** is a passive digital eye strain monitor that uses **any standard webcam** — no wearable device, no hardware purchase, no active user input required.
+
+It tracks **11 simultaneous eye, environmental, and behavioral signals**, fuses them into a live **0–100 strain score**, and delivers personalized exercise prescriptions through a **Groq-powered LLaMA 3.1** engine. Everything runs **100% locally** — no video is ever stored or uploaded.
+
+---
+
+## 🚀 Features
+
+- 👁️ **Blink Rate & Quality Tracking** — High-precision per-minute rate, plus a state machine distinguishing full vs. partial lazy closures
+- 📏 **Posture / Distance Drift Monitoring** — Detects creeping proximity to the screen over time
+- 💡 **Ambient Lighting Analyzer** — Face bounding box extraction to detect backlit, underlit, or uneven conditions
+- 👀 **Squint Detection & Gaze Entropy** — Tracks eye-narrowing and erratic gaze patterns
+- ✋ **Posture Lean & Eye Rubbing Detection** — MediaPipe Hands-based proximity tracking
+- 🔡 **Digital Visual Acuity Test** — On-demand Snellen charting mapped directly via webcam
+- 📉 **Vision Degradation Tracker** — SQLite-based historical aggregator for tracking declining trends
+- 💧 **Tear-Film Stability Index (TFSI)** — Clinical dry-eye engine with 4-signal weighted scoring and auto-alert
+- 🤖 **AI Weekly Strain Report** — Groq-powered 7-day analysis with LLaMA 3.1 ergonomic recommendations
+- ⚡ **FastAPI Backend** — REST API and 500ms WebSocket streams (`/ws/strain`, `/ws/signals`) for real-time frontend integration
+- 🎨 **React Frontend** — Clinical dark-themed UI built with Vite for live statistics, overlays, and prescriptions
+- 🔐 **Multi-User Isolation** — Built-in JWT authentication, letting multiple users securely view only their own historical data
+- 🧩 **Offline LLM Fallback** — Fully offline and private engine using TinyLlama via `llama-cpp-python`
+- 📄 **PDF Reporting** — Export full session analytics to an elegantly formatted PDF using dynamic `jsPDF` imports
+
+---
+
+## 🗃️ Project Structure
+
+```bash
+GazeAware/
+├── backend/
+│   ├── __init__.py
+│   ├── auth.py                   # JWT authentication and bcrypt password hashing
+│   ├── config.py                 # Centralized thresholds, weights, constants, and settings
+│   ├── main.py                   # Main entry point — webcam → signals → fusion → API → frontend
+│   ├── api/
+│   │   ├── __init__.py
+│   │   ├── server.py             # FastAPI server, REST endpoints, WebSockets, authentication
+│   │   └── shared_state.py       # Shared runtime state bridge between backend and API
+│   ├── database/
+│   │   ├── __init__.py
+│   │   ├── db.py                 # SQLite engine, session factory, database initialization
+│   │   └── models.py             # SQLAlchemy models (User, Session, Logs, Reports, Acuity)
+│   ├── fusion/
+│   │   ├── __init__.py
+│   │   ├── baseline.py           # Personal baseline calibration and persistence
+│   │   ├── crash_predictor.py    # Predicts upcoming strain crashes using trend analysis
+│   │   └── strain_engine.py      # Core weighted fusion engine producing 0–100 strain score
+│   ├── nlp/
+│   │   ├── __init__.py
+│   │   ├── claude_engine.py      # Claude AI integration (experimental/stub)
+│   │   ├── context_detector.py   # Detects active application and user activity context
+│   │   ├── groq_engine.py        # Groq-powered LLaMA prescription engine
+│   │   ├── llama_engine.py       # Local LLaMA integration interface
+│   │   ├── local_engine.py       # TinyLlama offline CPU-based inference engine
+│   │   ├── prescription.py       # Prescription orchestration and trigger logic
+│   │   └── prompts.py            # Prompt templates for AI recommendation engines
+│   ├── overlay/
+│   │   ├── __init__.py
+│   │   ├── forced_recovery.py    # Full-screen recovery exercise overlay
+│   │   ├── manager.py            # Overlay coordinator and trigger manager
+│   │   ├── tfsi_alert.py         # Tear-film instability warning banner
+│   │   └── vitality_ring.py      # Always-on-screen strain visualization HUD
+│   ├── recovery/
+│   │   ├── __init__.py
+│   │   └── verifier.py           # Verifies successful recovery after prescriptions
+│   ├── reports/
+│   │   ├── __init__.py
+│   │   ├── pdf_export.py         # PDF report generation utilities
+│   │   └── weekly_report.py      # AI-powered weekly strain analytics
+│   ├── signals/
+│   │   ├── __init__.py
+│   │   ├── blink_irregularity.py # Blink timing consistency analysis
+│   │   ├── blink_quality.py      # Full vs partial blink quality detection
+│   │   ├── blink_rate.py         # Real-time blink frequency tracking
+│   │   ├── distance_trend.py     # Long-term posture and screen-distance drift monitoring
+│   │   ├── eye_rubbing.py        # Eye-rubbing detection using MediaPipe Hands
+│   │   ├── gaze_entropy.py       # Eye movement randomness and fixation analysis
+│   │   ├── lighting_analyzer.py  # Ambient lighting quality assessment
+│   │   ├── posture_lean.py       # Forward posture detection
+│   │   ├── scleral_redness.py    # Eye redness estimation
+│   │   ├── screen_distance.py    # Real-time face-to-screen distance estimation
+│   │   ├── squint_detector.py    # Squint detection using eye aspect ratio
+│   │   └── tfsi_model.py         # Tear-Film Stability Index computation engine
+│   ├── tearfilm/
+│   │   ├── __init__.py
+│   │   └── tear_film_index.py    # Tear-film stability calculations and utilities
+│   └── vision_acuity/
+│       ├── __init__.py
+│       ├── acuity_test.py        # Interactive Snellen-based visual acuity test
+│       └── degradation_tracker.py# Long-term vision degradation analysis
+│
+├── frontend/
+│   ├── public/
+│   │   ├── favicon.svg           # Browser favicon
+│   │   └── icons.svg             # Shared SVG icon assets
+│   └── src/
+│   │   ├── App.jsx               # Application routing and protected routes
+│   │   ├── counter.ts            # Vite sample utility
+│   │   ├── index.css             # Global styling
+│   │   ├── main.jsx              # React application bootstrap
+│   │   ├── main.ts               # TypeScript bootstrap entry
+│   │   ├── style.css             # Additional application styles
+│   │   ├── assets/
+│   │   │   ├── hero.png          # Landing page hero image
+│   │   │   ├── typescript.svg    # TypeScript asset
+│   │   │   └── vite.svg          # Vite asset
+│   │   ├── components/
+│   │   │   ├── ConnectionStatus.jsx # API/WebSocket connection indicator
+│   │   │   ├── GlassCard.jsx        # Glassmorphism container component
+│   │   │   ├── SignalBar.jsx        # Signal visualization component
+│   │   │   ├── StatCard.jsx         # Dashboard statistics card
+│   │   │   ├── StrainGauge.jsx      # Live strain score gauge
+│   │   │   └── ZoneBadge.jsx        # Strain zone indicator badge
+│   │   ├── hooks/
+│   │   │   └── useGazeSocket.js     # WebSocket hook for real-time backend updates
+│   │   ├── layouts/
+│   │   │   └── AppLayout.jsx        # Shared application layout and navigation
+│   │   ├── pages/
+│   │   │   ├── Acuity.jsx           # Visual acuity testing interface
+│   │   │   ├── Dashboard.jsx        # Main real-time monitoring dashboard
+│   │   │   ├── History.jsx          # Historical session analytics
+│   │   │   ├── Landing.jsx          # Public landing page
+│   │   │   ├── Login.jsx            # User authentication page
+│   │   │   ├── Register.jsx         # User registration page
+│   │   │   └── Report.jsx           # Report generation and PDF exports
+│   │   └── services/
+│   │       └── api.js               # Backend API communication layer
+│   ├── index.html                # Vite application entry HTML
+│   ├── package-lock.json         # Locked frontend dependency versions
+│   ├── package.json              # React/Vite dependencies and scripts
+│   ├── tsconfig.json             # TypeScript configuration
+│   └── vite.config.js            # Vite build configuration
+│
+├── scratch/
+│   └── rename_phase.py          # Development utility script
+│
+├── tests/
+│   ├── run_acuity_standalone.py # Standalone visual acuity tester
+│   ├── seed_mock_acuity_data.py # Mock data generator for degradation testing
+│   ├── simulate_strain.py       # Webcam-free strain simulation environment
+│   ├── test_acuity.py           # Visual acuity unit tests
+│   ├── test_fusion.py           # Fusion engine tests
+│   ├── test_groq_engine.py      # Groq integration tests
+│   ├── test_nlp.py              # NLP engine tests
+│   ├── test_signals.py          # Signal module tests
+│   └── verify_phase21.py        # Automated Phase 2.1 verification suite
+│
+├── .env.example                  # Environment variable template (Groq API key, LLM settings)
+├── .gitattributes                # Git attribute configuration
+├── .gitignore                    # Excludes venv, database, secrets, build artifacts
+├── AI_CONTEXT.md                 # Complete project history, architecture, and phase documentation
+├── DESIGN.md                     # System design and architecture notes
+├── GazeAware.png                 # Project logo/banner
+├── LICENSE                       # MIT License
+├── README.md                     # Main project documentation and setup guide
+├── requirements.txt              # Python dependencies
+└── webcam_test.py                # Webcam, MediaPipe, EAR, and blink verification tool
+
+```
+
+---
+
+## 🔧 Setup & Installation
+
+> Make sure Python 3.11+ is installed. No GPU required — runs entirely on CPU.
+
+```bash
+# Clone the repo
 git clone https://github.com/SameerAhmedAI/GazeAware.git
 cd GazeAware
 
-# 2. Create virtual environment
+# Create and activate a virtual environment
 python -m venv .venv
-
-# 3. Activate it
 # PowerShell:
 .venv\Scripts\Activate.ps1
-# OR Command Prompt:
+# Command Prompt:
 .venv\Scripts\activate.bat
 
-# 4. Install dependencies
+# Install dependencies
 pip install -r requirements.txt
 
-# 5. Copy and fill in environment variables
+# Copy and configure environment variables
 copy .env.example .env
-# Edit .env and add your GROQ_API_KEY (free at https://console.groq.com)
 
-# 6. Run the backend engine
+# Run the backend engine
 python backend/main.py
 # FastAPI auto-starts on http://127.0.0.1:8000
 # Interactive API docs: http://127.0.0.1:8000/docs
 
-# 7. Start the React Frontend (in a new terminal)
+# Start the React frontend (in a new terminal)
 cd frontend
 npm install
 npm run dev
 ```
 
-> **Python 3.11+ required.** No GPU needed — runs entirely on CPU. It will take 60 seconds on first run to silently build your personal baseline profile.
+---
+
+## 🔑 API Configuration
+
+GazeAware uses **Groq** for AI-powered prescriptions and weekly reports, with a fully offline **TinyLlama** fallback.
+
+```.env
+GROQ_API_KEY="YOUR-GROQ-API-KEY"
+GAZEAWARE_USE_GROQ="true"
+```
+
+- **Groq API Key:** Get a free key from [Groq Console](https://console.groq.com)
+- **Offline mode:** Set `USE_LOCAL_LLM` to enable the local TinyLlama engine — no API key required
 
 ---
 
-## Controls & Usage
+## 🎮 Controls & Usage
 
-When the camera window opens, you can trigger specific events by pressing keys **while the camera window is in focus**:
+While the camera window is in focus:
 
 | Key | Action |
 |-----|--------|
-| `Q` | Quit cleanly (saves session statistics to Database) |
-| `S` | Print snapshot of all active signal values and diagnostics to the terminal |
+| `Q` | Quit cleanly (saves session statistics to database) |
+| `S` | Print a snapshot of all active signal values and diagnostics |
 | `B` | Force a 60-second fresh baseline calibration |
 | `Space` | Instantly trigger a prescription (skip the 10-second warning gate) |
 | `T` | Trigger the Tear-Film Stability Index (TFSI) dry-eye warning banner |
-| `A` | Trigger Digital Visual Acuity Test (Snellen chart) right inside OpenCV |
+| `A` | Trigger the Digital Visual Acuity Test (Snellen chart) |
 
 ---
 
-## How to Test Features
+## 🧪 Testing Without a Webcam
 
-### 🟡 Test YELLOW Zone (Mild Strain)
-- **Stop blinking naturally** — stare hard at the screen for 15–20 seconds
-- **Lean closer to your webcam** than when you started
-- Watch the strain score climb in your terminal
-
-### 🔴 Test RED Zone + Prescription (Danger Zone)
-- **Hold your eyes wide open without blinking** for 30+ seconds
-- Stay close to the camera
-- **Auditory Warning**: Immediately upon entering the RED zone, you will hear a **double-beep** sound alert. If your score stays continuously in the RED zone for 60 seconds (1 minute), the double-beep will sound again.
-- After **10 continuous seconds in RED**, an exercise prescription fires in the terminal
-- **Cover your webcam with your palm** (simulates palming exercise) — strain drops → `RECOVERED` prints
-
-### 💡 Test Environmental Modifiers
-- **Bad Lighting**: Dim the room lights or move a bright window directly behind your head. A `💡` multiplier will appear in the terminal, scaling your strain up dynamically.
-- **Posture Drift**: Lean towards your screen by at least 10cm. Wait a few seconds until the posture drift warning automatically prints, adding a `📏` multiplier to your score.
-
-### 👻 Test Ghost Overlay & Tear-Film Index (Phase 1.2)
-- **Vitality Ring**: An always-on HUD ring sits natively in the bottom-right corner of your screen at 10% opacity. It fills up orange/red precisely tracking your strain score. Hover your mouse over it to make it 100% visible.
-- **Forced Recovery**: Push your strain score past **60/100** (stare without blinking at a close distance). A full-screen dark overlay will fade in, forcing you to follow a moving blue ball to relax your eye muscles for 20 seconds. (Press `Esc` twice to bypass).
-- **TFSI / Dry-Eye Alert**: Wait for your blink quality ratio to decay significantly, or test it explicitly by pressing `T`. A medical banner will smoothly fade in from the top of the monitor, warning you of critically unstable tear film and holding for 10 seconds.
-
-### 👁️ Test Digital Visual Acuity + Degradation (Phase 2.2)
-- **Active Test**: While the webcam is open, press `A`. A pre-test distance gate will prompt you to sit at a healthy distance (50-70cm), then begin randomizing Snellen rows.
-- **Degradation tracking**: After a few weeks of tests (or by inserting seeded mock data), you can run `backend/vision_acuity/degradation_tracker.py` from the terminal to see your visual health degradation tracked against corresponding eyestrain scores.
-
-### 💧 Test Clinical Tear-Film Engine (Phase 2.3)
-- **Auto-alert**: The TFSI engine runs every 500ms automatically. If your tear-film stability score exceeds the CRITICAL threshold (68+) for 15 consecutive seconds, a clinical banner fires.
-- **Breakdown Rate**: The engine tracks how much faster your tear film is breaking down compared to your 2-minute session baseline. A `+42% faster` display appears in the alert.
-- **Manual trigger**: Press `T` to instantly simulate a CRITICAL tear-film alert at 88.5/100.
-- **S-key snapshot**: Press `S` — the TFSI section (`💧 TFSI`) shows the current score, stability class, and breakdown rate.
-
-### 📊 AI Weekly Strain Report (Phase 2.3 — Groq Integration)
-- Evaluates the previous 7 days of your local SQLite data.
-- Calculates your best day, worst day, and average strain.
-- If `GROQ_API_KEY` is set in your `.env` file, it generates personalized ergonomic recommendations using a Llama 3.1 model.
-- **Run independently via terminal**:
-  ```powershell
-  python backend/reports/weekly_report.py
-  ```
-
----
-
-## Testing Without a Webcam (Headless Simulator)
-
-If you are developing or testing logic without access to a webcam, use the interactive simulator which injects deterministic mathematics directly into the strain engine.
-
-```powershell
+```bash
 python tests/simulate_strain.py
 ```
 
-Choose from 10 distinct operating modes to test individual features:
-- **Phase 1 Strain Fusion**: Modes 1–5 test generic zone combinations (Green, Yellow, Red, Auto-flow).
-- **Phase 1.1 Edge-cases**: Mode 6 tests the lighting modifier scaling, Mode 7 injects fake blinks to test partial-blink logic, and Mode 8 simulates slow posture drift over time.
-- **Phase 1.2 Overlays**: Mode 9 ramps score 0→95 over 30s to demo both overlays without webcam.
-- **Phase 2.1 Eye Rubbing**: Mode 10 injects `eye_rubbing=0.8` for 15s to verify measurable strain rise.
+Choose from 10 operating modes to test strain zones, lighting modifiers, blink quality, distance drift, overlays, and eye rubbing — fully webcam-free.
 
 ---
 
-## Privacy & Data
-- **No imagery leaves your machine.** MediaPipe extracts coordinate dots locally in memory. 
-- All calculated telemetry logs are stored entirely in a local SQLite file (`gazeaware.db`).
-- This file is strictly excluded via `.gitignore` and naturally stays on your device.
+## 🔒 Privacy & Security
+
+- **No imagery leaves your machine** — MediaPipe extracts coordinate data locally in memory
+- All telemetry is stored in a local SQLite file (`gazeaware.db`), excluded via `.gitignore`
+- All API keys are read exclusively from environment variables — never hardcoded
+- No local sessions or camera captures are cached to disk
 
 ---
 
-## Security Audit Checks
-- Verified absence of hardcoded API keys in the source folder.
-- All API keys are read exclusively from environment variables via `os.environ.get()` — never hardcoded.
-- Uses `.env` file for local development (never committed — excluded by `.gitignore`).
-- Avoids caching local sessions or camera captures to disk.
+<div align="center">
+
+⭐ Found this project useful? Drop a star on GitHub!
+
+</div>
